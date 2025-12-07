@@ -1,0 +1,114 @@
+<!-- src/app/components/events/search-filters/search-filters.component.html -->
+<div class="search-filters-container">
+
+  <!-- 🔍 RECHERCHE PRINCIPALE -->
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        [(ngModel)]="filters.searchTerm"
+        (ngModelChange)="onFilterChange()"
+        placeholder="Rechercher un événement..."
+        class="search-input"
+        aria-label="Rechercher"
+      />
+      <button
+        *ngIf="filters.searchTerm"
+        (click)="filters.searchTerm = ''; onFilterChange()"
+        class="clear-search-btn"
+        aria-label="Effacer la recherche"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Bouton filtres avancés (mobile/optionnel) -->
+    <button
+      (click)="showAdvancedFilters = !showAdvancedFilters"
+      class="toggle-filters-btn"
+      [class.active]="showAdvancedFilters"
+    >
+      {{ showAdvancedFilters ? 'Moins de filtres' : 'Plus de filtres' }}
+    </button>
+  </div>
+
+  <!-- 🎯 FILTRES AVANCÉS -->
+  <div class="advanced-filters" *ngIf="showAdvancedFilters">
+
+    <!-- 🏷️ FILTRE CATÉGORIE -->
+    <div class="filter-group">
+      <label class="filter-label">
+        <span class="filter-icon">🏷️</span>
+        Catégorie
+      </label>
+      <select
+        [(ngModel)]="filters.category"
+        (ngModelChange)="onFilterChange()"
+        class="filter-select"
+      >
+        <option [ngValue]="null">Toutes les catégories</option>
+        <option *ngFor="let cat of categories" [value]="cat">
+          {{ cat }}
+        </option>
+      </select>
+    </div>
+
+    <!-- 📍 FILTRE LOCALISATION -->
+    <div class="filter-group">
+      <label class="filter-label">
+        <span class="filter-icon">📍</span>
+        Localisation
+      </label>
+      <div class="location-input-wrapper">
+        <input
+          type="text"
+          [(ngModel)]="filters.location"
+          (ngModelChange)="onFilterChange()"
+          placeholder="Paris, Lyon, Marseille..."
+          class="filter-input"
+          list="location-suggestions"
+        />
+        <datalist id="location-suggestions">
+          <option *ngFor="let loc of locations" [value]="loc"></option>
+        </datalist>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="filter-actions">
+      <button
+        (click)="clearFilters()"
+        class="btn-clear-filters"
+        [disabled]="!filters.searchTerm && !filters.category && !filters.location"
+      >
+        <span class="btn-icon">🗑️</span>
+        Réinitialiser
+      </button>
+
+      <div class="active-filters" *ngIf="hasActiveFilters()">
+        <span class="active-filters-label">Filtres actifs :</span>
+        <span class="filter-badge" *ngIf="filters.searchTerm">
+          🔍 {{ filters.searchTerm }}
+          <button (click)="removeFilter('searchTerm')">×</button>
+        </span>
+        <span class="filter-badge" *ngIf="filters.category">
+          🏷️ {{ filters.category }}
+          <button (click)="removeFilter('category')">×</button>
+        </span>
+        <span class="filter-badge" *ngIf="filters.location">
+          📍 {{ filters.location }}
+          <button (click)="removeFilter('location')">×</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Indicateur filtres actifs (mini) -->
+  <div *ngIf="hasActiveFilters() && !showAdvancedFilters" class="active-filters-mini">
+    <span class="filters-count">{{ countActiveFilters() }} filtre(s) actif(s)</span>
+    <button (click)="showAdvancedFilters = true" class="btn-show-filters">
+      Voir les filtres
+    </button>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<!-- src/app/app.html -->
+<div class="app-container">
+  <nav class="main-nav">
+    <div class="nav-container">
+      <a routerLink="/" class="logo">Eventora</a>
+
+      <div class="nav-links">
+        <!-- Toujours visible -->
+        <a routerLink="/events" routerLinkActive="active">Événements</a>
+
+        <!-- Seulement si connecté ET ORGANISATEUR -->
+        <a routerLink="/organizer/dashboard"
+           routerLinkActive="active"
+           *ngIf="isLoggedIn() && user?.role === 'ORGANIZER'"
+           class="nav-link-organizer">
+          🏢 Dashboard
+        </a>
+
+        <!-- Seulement si connecté -->
+        <a routerLink="/my-registrations"
+           routerLinkActive="active"
+           *ngIf="isLoggedIn()">
+          Mes inscriptions
+        </a>
+
+        <!-- NOTIFICATIONS -->
+        <a routerLink="/notifications"
+           routerLinkActive="active"
+           *ngIf="isLoggedIn()">
+          🔔 Notifications
+        </a>
+
+        <!-- Seulement si NON connecté -->
+        <a routerLink="/login"
+           routerLinkActive="active"
+           *ngIf="!isLoggedIn()">
+          Connexion
+        </a>
+
+        <a routerLink="/register"
+           routerLinkActive="active"
+           *ngIf="!isLoggedIn()">
+          Inscription
+        </a>
+
+        <!-- Seulement si connecté -->
+        <button *ngIf="isLoggedIn()"
+                (click)="logout()"
+                class="btn-logout">
+          🚪 Déconnexion
+        </button>
+
+        <!-- BOUTONS DE DÉVELOPPEMENT (à cacher en production) -->
+        <div *ngIf="isLoggedIn()" class="dev-buttons">
+          <button (click)="switchRole()"
+                  class="dev-switch-btn"
+                  title="Changer de rôle (dev)">
+            🔄 {{ user?.role || 'No role' }}
+          </button>
+
+          <button *ngIf="!isLoggedIn()"
+                  (click)="mockLogin('ORGANIZER')"
+                  class="dev-mock-btn"
+                  title="Mock login organisateur">
+            🏢 Mock Org
+          </button>
+
+          <button *ngIf="!isLoggedIn()"
+                  (click)="mockLogin('PARTICIPANT')"
+                  class="dev-mock-btn"
+                  title="Mock login participant">
+            👤 Mock Part
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="main-footer">
+    <p>© 2025 Eventora - Gestion d'événements by Rania BEKHOUCHE</p>
+  </footer>
+</div>

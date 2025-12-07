@@ -1,0 +1,143 @@
+<!-- src/app/components/registrations/my-registrations/my-registrations.component.html -->
+<div class="registrations-container">
+  <!-- En-tête -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Mes inscriptions</h1>
+      <p class="page-subtitle">
+        Gérez toutes vos inscriptions aux événements
+      </p>
+    </div>
+  </header>
+
+  <!-- Contenu principal -->
+  <main class="main-content">
+    <!-- Chargement -->
+    <div *ngIf="loading" class="loading-state">
+      <!-- Vide ou message très court -->
+      <p>Chargement...</p>
+    </div>
+
+    <!-- Erreur -->
+    <div *ngIf="error && !loading" class="error-state">
+      <p class="error-message">{{ error }}</p>
+      <button (click)="loadRegistrations()" class="btn-retry">
+        🔄 Réessayer
+      </button>
+    </div>
+
+    <!-- Filtres -->
+    <div *ngIf="!loading && !error" class="filters-section">
+      <div class="filter-buttons">
+        <button
+          (click)="statusFilter = 'ALL'"
+          [class.active]="statusFilter === 'ALL'"
+          class="filter-btn"
+        >
+          📋 Tous ({{ registrations.length }})
+        </button>
+        <button
+          (click)="statusFilter = 'CONFIRMED'"
+          [class.active]="statusFilter === 'CONFIRMED'"
+          class="filter-btn"
+        >
+          ✅ Confirmées ({{ confirmedCount }})
+        </button>
+        <button
+          (click)="statusFilter = 'PENDING'"
+          [class.active]="statusFilter === 'PENDING'"
+          class="filter-btn"
+        >
+          ⏳ En attente ({{ pendingCount }})
+        </button>
+        <button
+          (click)="statusFilter = 'CANCELLED'"
+          [class.active]="statusFilter === 'CANCELLED'"
+          class="filter-btn"
+        >
+          ❌ Annulées ({{ cancelledCount }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Liste des inscriptions -->
+    <section *ngIf="!loading && !error" class="registrations-section">
+      <h2 class="section-title">
+        {{ filteredRegistrations.length }} inscription{{ filteredRegistrations.length !== 1 ? 's' : '' }}
+      </h2>
+
+      <div *ngIf="filteredRegistrations.length === 0" class="empty-state">
+        <p>Aucune inscription trouvée avec ce filtre</p>
+        <button (click)="statusFilter = 'ALL'" class="btn-retry">
+          Voir toutes les inscriptions
+        </button>
+      </div>
+
+      <div *ngIf="filteredRegistrations.length > 0" class="registrations-list">
+        <div
+          *ngFor="let reg of filteredRegistrations; trackBy: trackByRegistrationId"
+          class="registration-card"
+        >
+          <!-- En-tête de la carte -->
+          <div class="registration-header">
+            <div class="event-category" [style.background]="getCategoryColor(reg.eventCategory)">
+              {{ getCategoryIcon(reg.eventCategory) }} {{ reg.eventCategory }}
+            </div>
+            <div class="status-badge" [style.background]="getStatusColor(reg.status)">
+              {{ getStatusIcon(reg.status) }} {{ getStatusText(reg.status) }}
+            </div>
+          </div>
+
+          <!-- Contenu -->
+          <div class="registration-content">
+            <h3 class="event-title">{{ reg.eventTitle }}</h3>
+
+            <div class="registration-meta">
+              <div class="meta-item">
+                <span class="meta-icon">📅</span>
+                <span class="meta-text">
+                  {{ formatShortDate(reg.eventDate) }} à {{ formatTime(reg.eventDate) }}
+                </span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-icon">📍</span>
+                <span class="meta-text">{{ reg.eventLocation }}</span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-icon">📝</span>
+                <span class="meta-text">
+                  Inscrit le {{ formatShortDate(reg.registrationDate) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="registration-actions">
+              <a [routerLink]="['/events', reg.eventId]" class="btn-details">
+                👁️ Voir l'événement
+              </a>
+
+              <button
+                *ngIf="reg.status !== 'CANCELLED'"
+                (click)="cancelRegistration(reg.id)"
+                class="btn-cancel"
+              >
+                ❌ Se désinscrire
+              </button>
+
+              <button
+                *ngIf="reg.status === 'CANCELLED'"
+                disabled
+                class="btn-disabled"
+              >
+                Annulée
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

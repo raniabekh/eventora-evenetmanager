@@ -1,0 +1,98 @@
+<div class="register-container">
+  <div class="row g-0 vh-100">
+    <!-- Left Side - Brand Section -->
+    <div class="col-md-6 left-side">
+      <div class="left-content">
+        <div class="brand-section">
+          <h1 class="logo">Eventora</h1>
+          <p class="slogan">Gérer vos événements sans effort</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side - Register Form -->
+    <div class="col-md-6 right-side">
+      <div class="right-content">
+        <div class="form-container">
+
+          <form (ngSubmit)="onRegister()" class="register-form">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="username" class="form-label">Username *</label>
+                  <input type="text" class="form-control" id="username"
+                         [(ngModel)]="userData.username" name="username" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="email" class="form-label">Email *</label>
+                  <input type="email" class="form-control" id="email"
+                         [(ngModel)]="userData.email" name="email"
+                         placeholder="exemple@mail.com"
+                         #email="ngModel"
+                         required
+                         pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}">
+                  <div class="text-danger" *ngIf="email.invalid && (email.dirty || email.touched)">
+                    Veuillez saisir un email valide (ex: exemple@mail.com).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="password" class="form-label">Password *</label>
+                  <input type="password" class="form-control" id="password"
+                         [(ngModel)]="userData.password" name="password" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                  <input type="password" class="form-control" id="confirmPassword"
+                         [(ngModel)]="confirmPassword" name="confirmPassword" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="role" class="form-label">Je suis *</label>
+              <select class="form-select" id="role" [(ngModel)]="userData.role" name="role" required>
+                <option value="">Choisir un rôle</option>
+                <option value="ORGANIZATEUR">Organisateur</option>
+                <option value="PARTICIPANT">Participant</option>
+              </select>
+            </div>
+
+            <div class="form-check mb-3">
+              <!-- Ici tu peux mettre la case à cocher pour les termes si nécessaire -->
+            </div>
+
+            <button type="submit" class="btn-register" [disabled]="loading || !acceptTerms">
+              {{ loading ? 'Création du compte...' : 'Créer mon compte' }}
+            </button>
+          </form>
+
+          <!-- Section Connexion -->
+          <div class="login-section">
+            <p class="login-text">
+              Vous avez déjà un compte ?
+              <a routerLink="/login" class="login-link">Se connecter</a>
+            </p>
+          </div>
+
+          <div *ngIf="error" class="alert-error">
+            {{ error }}
+          </div>
+
+          <div *ngIf="success" class="alert-success">
+            {{ success }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

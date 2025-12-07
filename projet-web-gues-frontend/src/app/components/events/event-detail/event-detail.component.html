@@ -1,0 +1,241 @@
+<!-- src/app/components/events/event-detail/event-detail.component.html -->
+<div class="event-detail-container">
+  <!-- Bouton retour -->
+  <div class="back-nav">
+    <a routerLink="/events" class="back-link">← Retour aux événements</a>
+    <a *ngIf="isLoggedIn()"
+       routerLink="/my-registrations"
+       class="my-reg-link">
+      📋 Mes inscriptions
+    </a>
+  </div>
+
+  <!-- Loader -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement de l'événement...</p>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-card">
+      <h3>Événement non trouvé</h3>
+      <p>{{error}}</p>
+      <a routerLink="/events" class="btn-primary">Voir tous les événements</a>
+    </div>
+  </div>
+
+  <!-- Contenu de l'événement -->
+  <div *ngIf="event && !loading" class="event-content">
+    <!-- En-tête -->
+    <header class="event-header">
+      <div class="event-category" [style.background]="getCategoryColor(event.category)">
+        {{getCategoryIcon(event.category)}} {{event.category}}
+      </div>
+      <h1 class="event-title">{{event.title}}</h1>
+      <div class="event-meta">
+        <span class="meta-item">
+          <span class="meta-icon">📅</span>
+          <span class="meta-label">Date :</span>
+          <span class="meta-value">{{formatDate(event.date)}}</span>
+        </span>
+        <span class="meta-item">
+          <span class="meta-icon">📍</span>
+          <span class="meta-label">Lieu :</span>
+          <span class="meta-value">{{event.location}}</span>
+        </span>
+        <span class="meta-item">
+          <span class="meta-icon">👥</span>
+          <span class="meta-label">Places :</span>
+          <span class="meta-value">{{event.maxParticipants}} maximum</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Galerie d'images -->
+    <div *ngIf="event.mediaUrls && event.mediaUrls.length > 0" class="gallery-section">
+      <div class="gallery-main">
+        <img [src]="event.mediaUrls[currentImageIndex]"
+             [alt]="event.title + ' - Image ' + (currentImageIndex + 1)"
+             class="main-image">
+
+        <button *ngIf="event.mediaUrls.length > 1" (click)="prevImage()" class="gallery-btn prev-btn">
+          ‹
+        </button>
+        <button *ngIf="event.mediaUrls.length > 1" (click)="nextImage()" class="gallery-btn next-btn">
+          ›
+        </button>
+      </div>
+
+      <div *ngIf="event.mediaUrls.length > 1" class="gallery-thumbnails">
+        <div *ngFor="let url of event.mediaUrls; let i = index"
+             (click)="currentImageIndex = i"
+             [class.active]="i === currentImageIndex"
+             class="thumbnail">
+          <img [src]="url" alt="Miniature {{i + 1}}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="description-section">
+      <h2>Description de l'événement</h2>
+      <div class="description-content">
+        <p>{{event.description}}</p>
+      </div>
+    </div>
+
+    <!-- Grille : détails + inscription -->
+    <div class="details-grid">
+      <!-- Section gauche : Détails -->
+      <div class="details-section">
+        <h3>Informations détaillées</h3>
+
+        <div class="info-card">
+          <div class="info-item">
+            <span class="info-label">🆔 ID de l'événement :</span>
+            <span class="info-value">{{event.id}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">👤 Organisateur :</span>
+            <span class="info-value">ID {{event.organizerId}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">📊 Statut :</span>
+            <span class="info-value" [class.active]="event.isActive" [class.inactive]="!event.isActive">
+              {{event.isActive ? 'Actif' : 'Inactif'}}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">🏷️ Catégorie :</span>
+            <span class="info-value">{{event.category}}</span>
+          </div>
+        </div>
+
+        <!-- Documents -->
+        <div *ngIf="event.mediaUrls && event.mediaUrls.length > 0" class="documents-section">
+          <h4>Documents et médias</h4>
+          <div class="documents-list">
+            <a *ngFor="let url of event.mediaUrls; let i = index"
+               [href]="url"
+               target="_blank"
+               class="document-item">
+              <span class="doc-icon">📎</span>
+              <span class="doc-name">Document {{i + 1}}</span>
+              <span class="doc-action">Ouvrir →</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section droite : Inscription -->
+      <div class="registration-section">
+        <div class="registration-card">
+          <h3>Participer à cet événement</h3>
+
+          <!-- Barre de capacité -->
+          <div class="capacity-display">
+            <div class="capacity-text">
+              <span class="capacity-label">Capacité :</span>
+              <span class="capacity-value">{{event.maxParticipants}} places</span>
+            </div>
+            <!-- Barre visuelle simple -->
+            <div class="capacity-visual">
+              <div class="capacity-bar">
+                <div class="capacity-fill" [style.width.%]="50"></div>
+              </div>
+              <div class="capacity-stats">
+                <span>50% rempli</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- État d'inscription -->
+          <div *ngIf="registrationStatus.isRegistered" class="current-registration">
+            <div class="status-header">
+              <h4>Votre inscription</h4>
+              <div class="status-badge" [style.background]="getStatusBadgeColor(registrationStatus.status)">
+                {{getStatusText(registrationStatus.status)}}
+              </div>
+            </div>
+
+            <div class="registration-details">
+              <p *ngIf="registrationStatus.registrationDate" class="registration-date">
+                <span class="detail-label">Date d'inscription :</span>
+                <span class="detail-value">{{formatShortDate(registrationStatus.registrationDate)}}</span>
+              </p>
+              <p class="registration-id">
+                <span class="detail-label">ID inscription :</span>
+                <span class="detail-value">#{{registrationStatus.registrationId}}</span>
+              </p>
+            </div>
+
+            <button (click)="cancelRegistration()"
+                    [disabled]="cancelling"
+                    class="btn-cancel">
+              <span *ngIf="!cancelling">❌ Se désinscrire</span>
+              <span *ngIf="cancelling">⌛ Annulation en cours...</span>
+            </button>
+          </div>
+
+          <!-- Actions d'inscription -->
+          <div *ngIf="!registrationStatus.isRegistered" class="registration-actions">
+            <div *ngIf="isLoggedIn()" class="logged-in-actions">
+              <button (click)="registerToEvent()"
+                      [disabled]="registering"
+                      class="btn-register">
+                <span *ngIf="!registering">✅ S'inscrire à cet événement</span>
+                <span *ngIf="registering">⌛ Inscription en cours...</span>
+              </button>
+
+              <p class="action-note">
+                Vous recevrez une confirmation par email.
+              </p>
+            </div>
+
+            <div *ngIf="!isLoggedIn()" class="login-required">
+              <div class="login-message">
+                <p>🔒 Connectez-vous pour vous inscrire à cet événement</p>
+              </div>
+              <div class="login-buttons">
+                <a routerLink="/login" class="btn-login">Se connecter</a>
+                <a routerLink="/register" class="btn-register-alt">Créer un compte</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Informations supplémentaires -->
+          <div class="additional-info">
+            <h4>Informations pratiques</h4>
+            <ul>
+              <li>📍 <strong>Lieu :</strong> {{event.location}}</li>
+              <li>📅 <strong>Date :</strong> {{formatDate(event.date)}}</li>
+              <li>⏰ <strong>Heure :</strong> {{formatTime(event.date)}}</li>
+              <li>👥 <strong>Participants max :</strong> {{event.maxParticipants}}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal de formulaire d'inscription -->
+  <div *ngIf="showRegistrationForm" class="registration-modal-overlay">
+    <div class="registration-modal-container">
+      <div class="registration-modal">
+        <app-registration-form
+          [eventId]="eventId"
+          [userId]="currentUserId"
+          [eventTitle]="event?.title || ''"
+          [userProfile]="userProfile"
+          (submitForm)="onRegistrationSubmit($event)"
+          (cancel)="closeRegistrationForm()"
+        ></app-registration-form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message de succès (optionnel) -->
+  <div *ngIf="registrationSuccess" class="success-toast">
+    ✅ Inscription réussie ! Redirection vers Mes inscriptions...
+  </div>
+</div>

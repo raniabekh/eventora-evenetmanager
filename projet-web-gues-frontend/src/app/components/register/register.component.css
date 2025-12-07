@@ -1,0 +1,168 @@
+/* --- Global Styles for Register Page --- */
+.register-container {
+  font-family: 'Poppins', sans-serif;
+  color: #333333;
+}
+
+/* --- Row Full Height --- */
+.row.g-0.vh-100 {
+  height: 100vh;
+}
+
+/* --- Left Side (Brand Section) --- */
+.left-side {
+  background: linear-gradient(135deg, #6a11cb, #2575fc); /* Violet profond → Bleu électrique */
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.left-content .logo {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+}
+
+.left-content .slogan {
+  font-size: 1.2rem;
+  font-weight: 300;
+  line-height: 1.5;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* --- Right Side (Form) --- */
+.right-side {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fafafa; /* Fond doux, moderne et élégant */
+  padding: 3rem 2rem;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 450px;
+  background: #ffffff;
+  padding: 2rem 2.5rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); /* ombre très douce */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Form Inputs --- */
+.register-form .form-group label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #555555;
+}
+
+.register-form .form-control,
+.register-form .form-select {
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  padding: 0.7rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.register-form .form-control:focus,
+.register-form .form-select:focus {
+  border-color: #2575fc; /* Bleu vif */
+  box-shadow: 0 0 5px rgba(37, 117, 252, 0.3);
+}
+
+/* --- Checkbox --- */
+.form-check-input {
+  width: 18px;
+  height: 18px;
+}
+
+.form-check-label a.terms-link {
+  color: #2575fc;
+  text-decoration: none;
+}
+
+.form-check-label a.terms-link:hover {
+  text-decoration: underline;
+}
+
+/* --- Submit Button --- */
+.btn-register {
+  width: 100%;
+  background: #2575fc; /* Bleu vif */
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-register:hover:enabled {
+  background: #8e2de2; /* Violet clair au hover */
+  transform: translateY(-2px);
+}
+
+/* --- Login Section --- */
+.login-section {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.login-text {
+  font-size: 0.95rem;
+  color: #555555;
+}
+
+.login-link {
+  color: #2575fc;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
+
+/* --- Alerts --- */
+.alert-error, .alert-success {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.alert-error {
+  background-color: #fdecea;
+  color: #d32f2f;
+}
+
+.alert-success {
+  background-color: #e6f4ea;
+  color: #388e3c;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .left-side {
+    display: none;
+  }
+  .right-side {
+    padding: 2rem 1rem;
+  }
+  .form-container {
+    padding: 1.5rem 1.8rem;
+  }
+}
+
+

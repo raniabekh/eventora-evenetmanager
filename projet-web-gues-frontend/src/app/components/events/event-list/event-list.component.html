@@ -1,0 +1,170 @@
+<!-- src/app/components/events/event-list/event-list.component.html -->
+<div class="event-list-container">
+  <!-- En-tête -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Événements à venir</h1>
+      <p class="page-subtitle">Découvrez des événements passionnants</p>
+
+      <div class="header-stats" *ngIf="!isLoading && !hasError">
+        <div class="stat-item">
+          <span class="stat-number">{{ filteredEvents.length }}</span>
+          <span class="stat-label">événements</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ categories.length }}</span>
+          <span class="stat-label">catégories</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Filtres -->
+  <section class="filters-section">
+    <div class="filters-card">
+      <h3 class="filters-title">🔍 Rechercher</h3>
+
+      <div class="search-container">
+        <div class="search-input-group">
+          <input
+            type="text"
+            [(ngModel)]="searchKeyword"
+            placeholder="Rechercher..."
+            (keyup.enter)="applyFilters()"
+            class="search-input"
+          >
+          <button (click)="applyFilters()" class="search-button">🔍</button>
+        </div>
+      </div>
+
+      <div class="filter-options">
+        <div class="filter-group">
+          <label class="filter-label">Catégorie</label>
+          <select [(ngModel)]="selectedCategory" class="filter-select">
+            <option value="">Toutes</option>
+            <option *ngFor="let cat of categories" [value]="cat.value">
+              {{ cat.icon }} {{ cat.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Lieu</label>
+          <input
+            type="text"
+            [(ngModel)]="locationFilter"
+            placeholder="Ville..."
+            class="filter-input"
+            (keyup.enter)="applyFilters()"
+          >
+        </div>
+
+        <div class="filter-actions">
+          <button (click)="applyFilters()" class="btn-apply">Appliquer</button>
+          <button (click)="resetFilters()" class="btn-reset">Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contenu principal -->
+  <main class="main-content">
+    <!-- Chargement -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <!-- Erreur -->
+    <div *ngIf="hasError && !isLoading" class="error-state">
+      <p>Erreur de chargement</p>
+      <button (click)="loadEvents()" class="btn-retry">Réessayer</button>
+    </div>
+
+    <!-- Liste vide -->
+    <div *ngIf="!isLoading && !hasError && filteredEvents.length === 0" class="empty-state">
+      <p>Aucun événement trouvé</p>
+      <button (click)="resetFilters()" class="btn-retry">Voir tout</button>
+    </div>
+
+    <!-- Grille d'événements -->
+    <section *ngIf="!isLoading && !hasError && filteredEvents.length > 0" class="events-section">
+      <h2 class="section-title">
+        {{ filteredEvents.length }} événement{{ filteredEvents.length > 1 ? 's' : '' }}
+      </h2>
+
+      <div class="events-grid">
+        <div
+          *ngFor="let event of paginatedEvents; trackBy: trackByEventId"
+          class="event-card"
+        >
+          <!-- Catégorie -->
+          <div class="event-category" [style.background]="getCategoryColor(event.category)">
+            {{ getCategoryIcon(event.category) }}
+          </div>
+
+          <!-- Image -->
+          <div class="event-image">
+            <img
+              [src]="getEventImage(event)"
+              [alt]="event.title"
+              class="event-img"
+              loading="lazy"
+              (error)="handleImageError($event)"
+            >
+            <div *ngIf="isEventFull(event)" class="event-full-badge">COMPLET</div>
+          </div>
+
+          <!-- Contenu -->
+          <div class="event-content">
+            <h3 class="event-title">{{ event.title }}</h3>
+
+            <div class="event-meta">
+              <span>📅 {{ formatShortDate(event.date) }} {{ formatTime(event.date) }}</span>
+              <span>📍 {{ event.location }}</span>
+            </div>
+
+            <p class="event-description">{{ truncateText(event.description, 100) }}</p>
+
+            <!-- Capacité -->
+            <div class="event-capacity">
+              <div class="capacity-info">
+                <span>👥 {{ getAvailableSpots(event) }}/{{ event.maxParticipants }}</span>
+                <span>{{ getOccupancyPercentage(event) }}%</span>
+              </div>
+              <div class="capacity-bar">
+                <div
+                  class="bar-fill"
+                  [style.width.%]="getOccupancyPercentage(event)"
+                  [class.bar-full]="isEventFull(event)"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Action -->
+            <div class="event-action">
+              <a [routerLink]="['/events', event.id]" class="btn-details">
+                Voir détails
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="totalPages > 1" class="pagination">
+        <button (click)="prevPage()" [disabled]="currentPage === 1">←</button>
+
+        <button
+          *ngFor="let page of pageNumbers"
+          (click)="goToPage(page)"
+          [class.active]="page === currentPage"
+        >
+          {{ page }}
+        </button>
+
+        <button (click)="nextPage()" [disabled]="currentPage === totalPages">→</button>
+      </div>
+    </section>
+  </main>
+</div>

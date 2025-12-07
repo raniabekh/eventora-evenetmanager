@@ -1,0 +1,180 @@
+<!-- src/app/components/organizer/organizer-dashboard/organizer-dashboard.component.html -->
+<div class="organizer-dashboard">
+  <!-- En-tête -->
+  <div class="dashboard-header">
+    <div class="welcome-section">
+      <h1 class="welcome-title">
+        <span class="welcome-icon">👋</span>
+        Bonjour, {{ user?.firstName || 'Organisateur' }} !
+      </h1>
+      <p class="welcome-subtitle">Voici un aperçu de vos activités et statistiques</p>
+    </div>
+
+    <div class="header-actions">
+      <button (click)="refreshStats()" class="refresh-btn">
+        <span class="refresh-icon">🔄</span>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-section">
+    <h2 class="section-title">📈 Vue d'ensemble</h2>
+
+    <div class="stats-grid">
+      <!-- Événements -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-icon">📋</span>
+          <h3 class="stat-label">Événements</h3>
+        </div>
+        <div class="stat-value">{{ stats?.totalEvents || 0 }}</div>
+        <div class="stat-details">
+          <span class="detail-item">
+            <span class="detail-icon upcoming">⏳</span>
+            {{ stats?.upcomingEvents || 0 }} à venir
+          </span>
+          <span class="detail-item">
+            <span class="detail-icon ongoing">▶️</span>
+            {{ stats?.ongoingEvents || 0 }} en cours
+          </span>
+        </div>
+      </div>
+
+      <!-- Participants -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-icon">👥</span>
+          <h3 class="stat-label">Participants</h3>
+        </div>
+        <div class="stat-value">{{ stats?.totalParticipants || 0 }}</div>
+        <div class="stat-trend">
+          <span class="trend-icon">📈</span>
+          <span class="trend-value positive">+{{ stats?.registrationTrend || 0 }}%</span>
+          <span class="trend-label">tendance</span>
+        </div>
+      </div>
+
+      <!-- Revenus -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-icon">💰</span>
+          <h3 class="stat-label">Revenus</h3>
+        </div>
+        <div class="stat-value">{{ formatCurrency(stats?.totalRevenue || 0) }}</div>
+        <div class="stat-details">
+          <span class="detail-item">
+            <span class="detail-icon">📊</span>
+            {{ stats?.averageAttendance || 0 }}% remplissage moyen
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions rapides -->
+  <div class="quick-actions-section">
+    <h2 class="section-title">🚀 Actions rapides</h2>
+
+    <div class="quick-actions-grid">
+      <a *ngFor="let action of quickActions"
+         [routerLink]="action.route"
+         class="quick-action-card"
+         [style.borderLeftColor]="action.color">
+
+        <div class="action-icon" [style.color]="action.color">
+          {{ action.icon }}
+        </div>
+
+        <div class="action-content">
+          <h3 class="action-title">{{ action.title }}</h3>
+          <p class="action-description">Cliquez pour accéder</p>
+        </div>
+
+        <div class="action-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Prochains événements -->
+  <div class="upcoming-events-section">
+    <div class="section-header">
+      <h2 class="section-title">📅 Prochains événements</h2>
+      <a routerLink="/organizer/events" class="view-all-link">Voir tous →</a>
+    </div>
+
+    <div class="events-list">
+      <div *ngFor="let event of upcomingEvents" class="event-card">
+        <div class="event-header">
+          <h3 class="event-title">{{ event.title }}</h3>
+          <span class="event-date">
+            {{ event.date | date: 'dd MMM yyyy' }}
+          </span>
+        </div>
+
+        <div class="event-info">
+          <span class="info-item">
+            <span class="info-icon">📍</span>
+            {{ event.location }}
+          </span>
+          <span class="info-item">
+            <span class="info-icon">👥</span>
+            {{ event.currentParticipants }}/{{ event.maxParticipants }}
+          </span>
+          <span class="info-item">
+            <span class="info-icon">💰</span>
+            {{ event.price }} €
+          </span>
+        </div>
+
+        <!-- Barre de progression -->
+        <div class="progress-section">
+          <div class="progress-bar">
+            <div class="progress-fill"
+                 [style.width.%]="getAttendancePercentage(event)"
+                 [class.high]="getAttendancePercentage(event) >= 80"
+                 [class.medium]="getAttendancePercentage(event) >= 50 && getAttendancePercentage(event) < 80"
+                 [class.low]="getAttendancePercentage(event) < 50">
+            </div>
+          </div>
+          <span class="progress-text">{{ getAttendancePercentage(event) }}% de remplissage</span>
+        </div>
+
+        <div class="event-actions">
+          <a [routerLink]="'/organizer/events/' + event.id" class="btn-manage">Gérer</a>
+          <a [routerLink]="'/events/' + event.id" class="btn-view">Voir</a>
+        </div>
+      </div>
+
+      <div *ngIf="upcomingEvents.length === 0" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>Aucun événement à venir</p>
+        <a routerLink="/organizer/events/create" class="btn-create">➕ Créer un événement</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activités récentes -->
+  <div class="recent-activities-section">
+    <h2 class="section-title">🔄 Activités récentes</h2>
+
+    <div class="activities-list">
+      <div *ngFor="let activity of recentActivities" class="activity-item">
+        <div class="activity-icon" [class]="'icon-' + activity.type">
+          <span *ngIf="activity.type === 'registration'">👥</span>
+          <span *ngIf="activity.type === 'event'">📋</span>
+          <span *ngIf="activity.type === 'message'">💬</span>
+          <span *ngIf="activity.type === 'update'">🔄</span>
+        </div>
+
+        <div class="activity-content">
+          <h4 class="activity-title">{{ activity.title }}</h4>
+          <p class="activity-description">{{ activity.description }}</p>
+        </div>
+
+        <span class="activity-time">{{ activity.time }}</span>
+      </div>
+    </div>
+  </div>
+</div>
