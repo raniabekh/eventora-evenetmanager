@@ -5,13 +5,14 @@ import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Event, EventFilters, CreateEventDTO, UpdateEventDTO } from '../models/event.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
-  // URL via API Gateway
-  private baseUrl = 'http://localhost:8080/api/events';
+  // URL via API Gateway (configurée dans environment)
+  private baseUrl = `${environment.apiBaseUrl}/events`;
 
   constructor(
     private http: HttpClient,

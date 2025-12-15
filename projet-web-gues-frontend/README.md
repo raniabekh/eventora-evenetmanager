@@ -1,59 +1,53 @@
-# ProjetWebGuesFrontend
+# Projet Web Gues – Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.1.
+Frontend Angular (CLI 21) qui consomme le Gateway Spring Cloud (`http://localhost:8080/api`). Les services `AuthService`, `EventService`, `RegistrationService` et `OrganizerService` s’appuient tous sur cette base pour dialoguer avec les microservices.
 
-## Development server
+## Configuration API
 
-To start a local development server, run:
+- Le point d’entrée unique est défini dans `src/environments/environment.ts` :
+
+  ```ts
+  export const environment = {
+    production: false,
+    apiBaseUrl: 'http://localhost:8080/api'
+  };
+  ```
+
+- Les endpoints appelés côté frontend correspondent aux routes du gateway :
+  - `POST /api/auth/*` pour l’authentification.
+  - `GET/POST/PUT/DELETE /api/events/*` pour la gestion des événements.
+  - `GET/POST /api/registrations/*` pour les inscriptions et changements d’état.
+  - `GET /api/notifications/*` si besoin des notifications.
+
+Assurez-vous que le gateway et les microservices sont démarrés avant de lancer le frontend.
+
+## Démarrer le frontend
 
 ```bash
+npm install
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Ensuite ouvrez `http://localhost:4200/`. L’application se recharge automatiquement à chaque modification.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Build
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Les artefacts seront générés dans `dist/`.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Tests unitaires
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+## Génération de composants (scaffolding)
 
 ```bash
-ng e2e
+ng generate component component-name
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Consultez `ng generate --help` pour la liste complète des schémas (services, directives, pipes, etc.).

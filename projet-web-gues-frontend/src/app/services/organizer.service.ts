@@ -6,6 +6,7 @@ import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { Event } from '../models/event.model';
 import { Registration } from './registration.service';
+import { environment } from '../../environments/environment';
 
 export interface OrganizerStats {
   totalEvents: number;
@@ -26,7 +27,7 @@ export interface OrganizerEvent extends Event {
   providedIn: 'root'
 })
 export class OrganizerService {
-  private baseUrl = 'http://localhost:8080/api';
+  private baseUrl = environment.apiBaseUrl;
 
   constructor(
     private http: HttpClient,
