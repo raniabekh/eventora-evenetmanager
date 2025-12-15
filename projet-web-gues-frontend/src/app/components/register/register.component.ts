@@ -58,28 +58,13 @@ export class RegisterComponent {
       next: (response: any) => {
         console.log('✅ Inscription réussie:', response);
         this.loading = false;
-        this.success = 'Compte créé ! Connexion en cours...';
+        this.success = 'Compte créé ! Redirection...';
 
-        // Connexion automatique après inscription
-        this.authService.login({
-          username: this.userData.username,
-          password: this.userData.password
-        }).subscribe({
-          next: (loginRes: any) => {
-            console.log('🔐 Connexion automatique réussie:', loginRes);
-
-            // Stocker les infos de connexion si nécessaire
-            localStorage.setItem('auth_data', JSON.stringify(loginRes));
-
-            // Redirection vers la page d'accueil
-            this.router.navigate(['/']);
-          },
-          error: (loginErr: any) => {
-            console.error('❌ Connexion automatique échouée:', loginErr);
-            // Redirection vers login si connexion échoue
-            this.router.navigate(['/login']);
-          }
-        });
+        // ✅ REDIRECTION DIRECTE VERS /events (comme login)
+        // Le AuthService gère déjà le stockage du token et user
+        setTimeout(() => {
+          this.router.navigate(['/events']);
+        }, 1000);
       },
       error: (err: any) => {
         console.error('❌ Erreur inscription:', err);

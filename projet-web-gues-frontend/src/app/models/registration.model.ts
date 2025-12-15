@@ -1,13 +1,14 @@
-// src/app/models/registration.model.ts
 export interface Registration {
-  id?: number;
+  id: number;
   eventId: number;
   userId: number;
-  registrationDate: string;  // Format ISO
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-
-  // Optionnel - pour l'affichage
-  event?: any;  // Vous pouvez remplacer par Event si vous avez l'interface
+  participantName: string;    // ← AJOUTER
+  participantEmail: string;   // ← AJOUTER
+  participantPhone?: string;  // ← AJOUTER
+  registrationDate: string;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'WAITING_LIST';
+  notes?: string;            // ← AJOUTER
+  qrCodeUrl?: string;        // ← AJOUTER
 }
 
 export interface RegistrationStatus {
@@ -22,4 +23,12 @@ export interface EventStats {
   participantsCount: number;
   capacity: number;
   availableSpots: number;
+}
+
+export interface RegistrationRequest {
+  participantName: string;
+  participantEmail: string;
+  participantPhone?: string;
+  notes?: string;
+  acceptTerms: boolean;
 }

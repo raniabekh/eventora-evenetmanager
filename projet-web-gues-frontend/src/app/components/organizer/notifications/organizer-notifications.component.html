@@ -1,0 +1,305 @@
+<!-- src/app/components/organizer/notifications/organizer-notifications.component.html -->
+<div class="notifications-container">
+
+  <!-- EN-TÊTE -->
+  <header class="notifications-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <span class="title-icon">👨‍💼🔔</span>
+        Notifications Organisateur
+      </h1>
+      <p class="page-subtitle">Gérez les notifications de vos événements</p>
+
+      <!-- STATISTIQUES -->
+      <div class="stats-cards" *ngIf="!isLoading && !hasError">
+        <div class="stat-card total">
+          <span class="stat-number">{{ stats.total }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-card unread">
+          <span class="stat-number">{{ stats.unread }}</span>
+          <span class="stat-label">Non lues</span>
+        </div>
+        <div class="stat-card read">
+          <span class="stat-number">{{ stats.read }}</span>
+          <span class="stat-label">Lues</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROLES -->
+  <section class="controls-section">
+    <div class="controls-card">
+      <!-- RECHERCHE -->
+      <div class="search-container">
+        <div class="search-input-group">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (input)="applyFilters()"
+            placeholder="Rechercher dans les notifications..."
+            class="search-input"
+          />
+          <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-search">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTRES -->
+      <div class="filters-row">
+        <!-- TYPE -->
+        <div class="filter-group">
+          <label class="filter-label">Type</label>
+          <select [(ngModel)]="filterType" (change)="applyFilters()" class="filter-select">
+            <option *ngFor="let type of notificationTypes" [value]="type.value">
+              {{ type.icon }} {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- NON LUES -->
+        <div class="filter-group checkbox-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [(ngModel)]="filterUnreadOnly"
+              (change)="applyFilters()"
+              class="checkbox-input"
+            />
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">Afficher uniquement les non lues</span>
+          </label>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="actions-group">
+          <button (click)="markAllAsRead()" class="btn-action" [disabled]="stats.unread === 0">
+            <span class="btn-icon">✅</span>
+            Tout marquer comme lu
+          </button>
+          <button (click)="simulateNotification()" class="btn-action btn-simulate">
+            <span class="btn-icon">🎲</span>
+            Simuler une notification
+          </button>
+          <button (click)="simulateMultiple()" class="btn-action btn-simulate">
+            <span class="btn-icon">🎲🎲🎲</span>
+            Simuler 3 notifications
+          </button>
+          <button (click)="clearAll()" class="btn-action btn-danger">
+            <span class="btn-icon">🗑️</span>
+            Tout supprimer
+          </button>
+        </div>
+      </div>
+
+      <!-- BADGES FILTRES ACTIFS -->
+      <div class="active-filters" *ngIf="filterType !== 'all' || filterUnreadOnly || searchTerm">
+        <span class="filters-label">Filtres actifs :</span>
+
+        <span class="filter-badge" *ngIf="filterType !== 'all'">
+          {{ getTypeIcon(filterType) }} {{ getTypeLabel(filterType) }}
+          <button (click)="filterType = 'all'; applyFilters()">×</button>
+        </span>
+
+        <span class="filter-badge" *ngIf="filterUnreadOnly">
+          👁️ Non lues seulement
+          <button (click)="filterUnreadOnly = false; applyFilters()">×</button>
+        </span>
+
+        <span class="filter-badge" *ngIf="searchTerm">
+          🔍 "{{ searchTerm }}"
+          <button (click)="searchTerm = ''; applyFilters()">×</button>
+        </span>
+
+        <button (click)="filterType = 'all'; filterUnreadOnly = false; searchTerm = ''; applyFilters()"
+                class="clear-all-filters">
+          Effacer tous les filtres
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="main-content">
+    <!-- CHARGEMENT -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement des notifications...</p>
+    </div>
+
+    <!-- ERREUR -->
+    <div *ngIf="hasError && !isLoading" class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>Erreur de chargement</h3>
+      <p>Impossible de charger les notifications. Veuillez réessayer.</p>
+      <button (click)="loadNotifications()" class="btn-retry">↻ Réessayer</button>
+    </div>
+
+    <!-- AUCUNE NOTIFICATION -->
+    <div *ngIf="!isLoading && !hasError && notifications.length === 0" class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>Aucune notification organisateur</h3>
+      <p>Vous n'avez pas encore de notifications. Revenez plus tard !</p>
+      <button (click)="simulateNotification()" class="btn-retry">
+        Simuler une notification
+      </button>
+    </div>
+
+    <!-- AUCUNE NOTIFICATION AVEC FILTRES -->
+    <div *ngIf="!isLoading && !hasError && notifications.length > 0 && filteredNotifications.length === 0"
+         class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>Aucun résultat</h3>
+      <p>Aucune notification ne correspond à vos critères de recherche.</p>
+      <button (click)="filterType = 'all'; filterUnreadOnly = false; searchTerm = ''; applyFilters()"
+              class="btn-retry">
+        Afficher toutes les notifications
+      </button>
+    </div>
+
+    <!-- LISTE DES NOTIFICATIONS -->
+    <section *ngIf="!isLoading && !hasError && filteredNotifications.length > 0" class="notifications-list">
+      <div class="list-header">
+        <h2>
+          {{ filteredNotifications.length }} notification{{ filteredNotifications.length > 1 ? 's' : '' }}
+          <span *ngIf="filterType !== 'all' || filterUnreadOnly || searchTerm">filtrée{{ filteredNotifications.length > 1 ? 's' : '' }}</span>
+        </h2>
+
+        <!-- PAGINATION HEADER -->
+        <div class="pagination-info" *ngIf="totalPages > 1">
+          Page {{ currentPage }} sur {{ totalPages }}
+        </div>
+      </div>
+
+      <!-- LISTE -->
+      <div class="notifications-grid">
+        <div *ngFor="let notification of paginatedNotifications"
+             class="notification-card"
+             [class.unread]="!notification.isRead"
+             [class.read]="notification.isRead">
+
+          <!-- INDICATEUR NON LU -->
+          <div *ngIf="!notification.isRead" class="unread-indicator"></div>
+
+          <!-- EN-TÊTE -->
+          <div class="notification-header">
+            <!-- ICÔNE TYPE -->
+            <div class="type-icon" [style.background]="getTypeColor(notification.type)">
+              {{ getTypeIcon(notification.type) }}
+            </div>
+
+            <!-- TITRE ET DATE -->
+            <div class="header-content">
+              <h3 class="notification-title">{{ notification.title }}</h3>
+              <div class="notification-meta">
+                <span class="notification-type" [style.color]="getTypeColor(notification.type)">
+                  {{ getTypeLabel(notification.type) }}
+                </span>
+                <span class="notification-date">• {{ formatDate(notification.createdAt) }}</span>
+              </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="notification-actions">
+              <button
+                *ngIf="!notification.isRead"
+                (click)="markAsRead(notification, $event)"
+                class="btn-mark-read"
+                title="Marquer comme lu"
+              >
+                👁️
+              </button>
+              <button
+                (click)="deleteNotification(notification, $event)"
+                class="btn-delete"
+                title="Supprimer"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          <!-- MESSAGE -->
+          <div class="notification-body">
+            <p class="notification-message">{{ notification.message }}</p>
+
+            <!-- INFORMATIONS SUPPLÉMENTAIRES -->
+            <div class="additional-info" *ngIf="notification.eventTitle || notification.participantName">
+              <div *ngIf="notification.eventTitle" class="info-item">
+                <span class="info-label">Événement :</span>
+                <span class="info-value">{{ notification.eventTitle }}</span>
+              </div>
+              <div *ngIf="notification.participantName" class="info-item">
+                <span class="info-label">Participant :</span>
+                <span class="info-value">{{ notification.participantName }}</span>
+              </div>
+            </div>
+
+            <!-- DONNÉES -->
+            <div *ngIf="notification.data" class="notification-data">
+              <small>Données : {{ notification.data | json }}</small>
+            </div>
+          </div>
+
+          <!-- PRIORITÉ -->
+          <div *ngIf="notification.priority === 'high'" class="priority-badge high">
+            ⚠️ Haute priorité
+          </div>
+          <div *ngIf="notification.priority === 'medium'" class="priority-badge medium">
+            📌 Priorité moyenne
+          </div>
+          <div *ngIf="notification.priority === 'low'" class="priority-badge low">
+            📄 Faible priorité
+          </div>
+
+          <!-- ACTION -->
+          <div *ngIf="notification.eventId" class="notification-footer">
+            <button (click)="navigateToEvent(notification.eventId)" class="btn-action">
+              <span class="btn-icon">→</span>
+              Voir l'événement
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGINATION -->
+      <div *ngIf="totalPages > 1" class="pagination">
+        <button
+          (click)="prevPage()"
+          [disabled]="currentPage === 1"
+          class="pagination-btn prev"
+        >
+          ← Précédent
+        </button>
+
+        <div class="page-numbers">
+          <button
+            *ngFor="let page of pageNumbers"
+            (click)="goToPage(page)"
+            [class.active]="page === currentPage"
+            class="page-btn"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+          class="pagination-btn next"
+        >
+          Suivant →
+        </button>
+      </div>
+
+      <!-- INFO PAGINATION -->
+      <div class="pagination-info-bottom" *ngIf="filteredNotifications.length > 0">
+        Affichage de {{ paginatedNotifications.length }} notification{{ paginatedNotifications.length > 1 ? 's' : '' }}
+        sur {{ filteredNotifications.length }}
+      </div>
+    </section>
+  </main>
+</div>

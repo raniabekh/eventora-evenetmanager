@@ -101,7 +101,7 @@
   <div class="upcoming-events-section">
     <div class="section-header">
       <h2 class="section-title">📅 Prochains événements</h2>
-      <a routerLink="/organizer/events" class="view-all-link">Voir tous →</a>
+      <a routerLink="/organizer/manage-events" class="view-all-link">Voir tous →</a> <!-- MODIFIÉ ICI -->
     </div>
 
     <div class="events-list">
@@ -142,7 +142,7 @@
         </div>
 
         <div class="event-actions">
-          <a [routerLink]="'/organizer/events/' + event.id" class="btn-manage">Gérer</a>
+          <a [routerLink]="'/organizer/events/edit/' + event.id" class="btn-manage">Gérer</a> <!-- MODIFIÉ ICI -->
           <a [routerLink]="'/events/' + event.id" class="btn-view">Voir</a>
         </div>
       </div>

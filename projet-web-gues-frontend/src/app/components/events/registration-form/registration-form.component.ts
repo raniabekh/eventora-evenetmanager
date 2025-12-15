@@ -2,7 +2,8 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RegistrationFormData, RegistrationFormErrors } from '../../../models/registration-form.model';
+import { RegistrationService, RegistrationRequest } from '../../../services/registration.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-registration-form',
@@ -13,122 +14,111 @@ import { RegistrationFormData, RegistrationFormErrors } from '../../../models/re
 })
 export class RegistrationFormComponent implements OnInit {
   @Input() eventId!: number;
-  @Input() userId!: number;
   @Input() eventTitle: string = '';
-  @Input() userProfile?: { fullName?: string; email?: string; phone?: string };
 
-  @Output() submitForm = new EventEmitter<RegistrationFormData>();
+  @Output() submitForm = new EventEmitter<any>();
   @Output() cancel = new EventEmitter<void>();
 
   // Données du formulaire
-  formData: RegistrationFormData = {
-    eventId: 0,
-    userId: 0,
-    fullName: '',
-    email: '',
-    phone: '',
-    acceptTerms: false,
-    registrationDate: ''
+  formData = {
+    participantName: '',
+    participantEmail: '',
+    participantPhone: '',
+    acceptTerms: false
   };
 
-  // Erreurs de validation
-  errors: RegistrationFormErrors = {};
-
-  // État
-  isSubmitting = false;
+  // États
+  isLoading = false;
+  errors: string[] = [];
   showSuccess = false;
 
+  constructor(
+    private registrationService: RegistrationService,
+    private authService: AuthService
+  ) {}
+
   ngOnInit(): void {
-    // Initialiser avec les IDs
-    this.formData.eventId = this.eventId;
-    this.formData.userId = this.userId;
+    this.prefillUserData();
+  }
 
-    // Pré-remplir avec le profil utilisateur si disponible
-    if (this.userProfile) {
-      this.formData.fullName = this.userProfile.fullName || '';
-      this.formData.email = this.userProfile.email || '';
-      this.formData.phone = this.userProfile.phone || '';
+  // Pré-remplir avec les données utilisateur
+  prefillUserData(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser) {
+      this.formData.participantName = currentUser.username || '';
+      this.formData.participantEmail = currentUser.email || '';
     }
   }
 
-  // Validation du formulaire
+  // Validation
   validateForm(): boolean {
-    this.errors = {};
-    let isValid = true;
+    this.errors = [];
 
-    // Nom complet
-    if (!this.formData.fullName.trim()) {
-      this.errors.fullName = 'Le nom complet est requis';
-      isValid = false;
-    } else if (this.formData.fullName.trim().length < 2) {
-      this.errors.fullName = 'Le nom doit contenir au moins 2 caractères';
-      isValid = false;
+    if (!this.formData.participantName.trim()) {
+      this.errors.push('Le nom complet est requis');
     }
 
-    // Email
-    if (!this.formData.email.trim()) {
-      this.errors.email = 'L\'email est requis';
-      isValid = false;
-    } else if (!this.isValidEmail(this.formData.email)) {
-      this.errors.email = 'Format d\'email invalide';
-      isValid = false;
+    if (!this.formData.participantEmail.trim()) {
+      this.errors.push('L\'email est requis');
+    } else if (!this.isValidEmail(this.formData.participantEmail)) {
+      this.errors.push('Format d\'email invalide');
     }
 
-    // Téléphone (optionnel mais si rempli, validation)
-    if (this.formData.phone.trim() && !this.isValidPhone(this.formData.phone)) {
-      this.errors.phone = 'Format de téléphone invalide';
-      isValid = false;
+    if (this.formData.participantPhone && !this.isValidPhone(this.formData.participantPhone)) {
+      this.errors.push('Format de téléphone invalide');
     }
 
-    // Conditions
     if (!this.formData.acceptTerms) {
-      this.errors.acceptTerms = 'Vous devez accepter les conditions';
-      isValid = false;
+      this.errors.push('Vous devez accepter les conditions');
     }
 
-    return isValid;
+    return this.errors.length === 0;
   }
 
-  // Soumission du formulaire
+  // Soumission
   onSubmit(): void {
-    if (this.validateForm()) {
-      this.isSubmitting = true;
-
-      // Ajouter la date d'inscription
-      this.formData.registrationDate = new Date().toISOString();
-
-      // Simuler un délai pour l'UX
-      setTimeout(() => {
-        this.submitForm.emit({ ...this.formData });
-        this.isSubmitting = false;
-        this.showSuccess = true;
-
-        // Fermer automatiquement après 2 secondes
-        setTimeout(() => {
-          this.showSuccess = false;
-        }, 2000);
-      }, 1000);
+    if (!this.validateForm()) {
+      return;
     }
+
+    this.isLoading = true;
+
+    const registrationRequest: RegistrationRequest = {
+      participantName: this.formData.participantName,
+      participantEmail: this.formData.participantEmail,
+      participantPhone: this.formData.participantPhone || undefined,
+      acceptTerms: this.formData.acceptTerms
+    };
+
+    this.registrationService.registerToEvent(this.eventId, registrationRequest)
+      .subscribe({
+        next: (registration) => {
+          this.isLoading = false;
+          this.showSuccess = true;
+
+          // Attendre 1 seconde avant d'émettre l'événement
+          setTimeout(() => {
+            this.submitForm.emit({
+              success: true,
+              registration: registration
+            });
+          }, 1000);
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.errors = [error.error?.message || 'Erreur lors de l\'inscription'];
+          this.submitForm.emit({
+            success: false,
+            error: error,
+            message: this.errors[0]
+          });
+        }
+      });
   }
 
   // Annulation
   onCancel(): void {
     this.cancel.emit();
-  }
-
-  // Réinitialiser le formulaire
-  resetForm(): void {
-    this.formData = {
-      eventId: this.eventId,
-      userId: this.userId,
-      fullName: this.userProfile?.fullName || '',
-      email: this.userProfile?.email || '',
-      phone: this.userProfile?.phone || '',
-      acceptTerms: false,
-      registrationDate: ''
-    };
-    this.errors = {};
-    this.showSuccess = false;
   }
 
   // Utilitaires de validation
@@ -138,12 +128,13 @@ export class RegistrationFormComponent implements OnInit {
   }
 
   private isValidPhone(phone: string): boolean {
-    // Accepte : 0612345678, 06 12 34 56 78, +33612345678
-    const phoneRegex = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
-    return phoneRegex.test(phone);
+    // Format français: 0612345678, 06 12 34 56 78, +33612345678
+    const cleanPhone = phone.replace(/\s/g, '');
+    const phoneRegex = /^(?:(?:\+|00)33|0)[1-9](?:\d{2}){4}$/;
+    return phoneRegex.test(cleanPhone);
   }
 
-  // Formater le téléphone au fur et à mesure
+  // Formater le téléphone en temps réel
   formatPhone(event: any): void {
     let value = event.target.value.replace(/\D/g, '');
 
@@ -152,18 +143,28 @@ export class RegistrationFormComponent implements OnInit {
     }
 
     if (value.length > 0) {
-      value = value.match(/.{1,2}/g)?.join(' ') || value;
+      const formatted = [];
+      if (value.startsWith('0')) {
+        formatted.push(value.substring(0, 2));
+        if (value.length > 2) formatted.push(value.substring(2, 4));
+        if (value.length > 4) formatted.push(value.substring(4, 6));
+        if (value.length > 6) formatted.push(value.substring(6, 8));
+        if (value.length > 8) formatted.push(value.substring(8, 10));
+        value = formatted.join(' ');
+      }
     }
 
-    this.formData.phone = value;
+    this.formData.participantPhone = value;
   }
 
-  // Gestion des erreurs
-  hasError(field: keyof RegistrationFormErrors): boolean {
-    return !!this.errors[field];
+  // Méthodes pour le template
+  hasError(fieldName: string): boolean {
+    return this.errors.some(error => error.toLowerCase().includes(fieldName.toLowerCase()));
   }
 
-  getError(field: keyof RegistrationFormErrors): string {
-    return this.errors[field] || '';
+  getError(fieldName: string): string {
+    return this.errors.find(error =>
+      error.toLowerCase().includes(fieldName.toLowerCase())
+    ) || '';
   }
 }

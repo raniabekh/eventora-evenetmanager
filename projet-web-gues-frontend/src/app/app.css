@@ -1,204 +1,324 @@
-/* src/app/app.component.css */
+/* src/app/app.css */
 .app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Navigation */
+/* ============ NAVBAR ============ */
 .main-nav {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 0 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 15px 0;
 }
 
+/* Logo */
 .logo {
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-size: 1.8rem;
+  font-weight: 700;
   color: white;
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
 }
 
+.logo-icon {
+  font-size: 2rem;
+}
+
+.logo:hover {
+  color: #4ecdc4;
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+/* Liens de navigation */
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 20px;
 }
 
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.2s;
+.role-links {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 15px;
+  padding: 0 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  border-right: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.nav-links a:hover {
+/* Items de navigation */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.nav-item.active {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+  border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+}
+
+/* Liens spécifiques */
+.organizer-link {
+  color: #ff9ff3;
+}
+
+.organizer-link:hover {
+  background: rgba(255, 159, 243, 0.1);
+}
+
+.notification-link {
+  position: relative;
+}
+
+/* Badges */
+.badge, .notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff6b6b;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 50%;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.badge {
+  background: #4ecdc4;
+}
+
+/* ============ SECTION AUTH ============ */
+.auth-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto;
+}
+
+.auth-link {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-link:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.nav-links a.active {
-  background: rgba(255, 255, 255, 0.2);
+.register-link {
+  background: #4ecdc4;
+  color: #2c3e50;
   font-weight: 600;
+}
+
+.register-link:hover {
+  background: #3dbdb4;
+  transform: translateY(-2px);
+}
+
+.auth-icon {
+  font-size: 1.1rem;
+}
+
+/* ============ UTILISATEUR CONNECTÉ ============ */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(78, 205, 196, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.user-avatar.organizer {
+  background: rgba(255, 159, 243, 0.2);
+  color: #ff9ff3;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.user-role {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.role-organizer {
+  color: #ff9ff3;
 }
 
 /* Bouton déconnexion */
 .btn-logout {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 10px 18px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  gap: 8px;
+  transition: all 0.3s ease;
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.2);
 }
 
-/* Contenu principal */
+.logout-icon {
+  font-size: 1.2rem;
+}
+
+.logout-text {
+  font-size: 0.9rem;
+}
+
+/* ============ CONTENU PRINCIPAL ============ */
 .main-content {
   flex: 1;
-  padding: 2rem 1rem;
-  max-width: 1200px;
+  padding: 30px 20px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Footer */
+/* ============ FOOTER ============ */
 .main-footer {
-  background: #1e293b;
-  color: #cbd5e1;
+  background: #2c3e50;
+  color: white;
   text-align: center;
-  padding: 1.5rem;
+  padding: 25px 20px;
   margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Responsive */
+.main-footer p {
+  margin: 5px 0;
+  opacity: 0.8;
+}
+
+.footer-version {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .nav-links {
+    gap: 10px;
+  }
+
+  .role-links {
+    padding: 0 10px;
+    gap: 10px;
+  }
+
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-container {
     flex-direction: column;
-    gap: 1rem;
+    gap: 15px;
   }
 
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
-  }
-}
-.nav-link-notifications {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: #333;
-  padding: 8px 16px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-.nav-link-notifications:hover {
-  background-color: #f5f5f5;
-  transform: translateY(-1px);
-}
-
-.nav-link-notifications.active {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  font-weight: 500;
-}
-
-.notification-icon-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background-color: #f44336;
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
-  transform: scale(0);
-}
-
-.notification-badge.has-unread {
-  transform: scale(1);
-  animation: pulse 1.5s infinite;
-}
-
-/* Animation pour le badge */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
-  }
-}
-
-/* Style pour le dropdown mobile (optionnel) */
-.notification-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 320px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 1000;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .nav-link-notifications {
-    padding: 8px 12px;
+    gap: 10px;
   }
 
-  .nav-link-notifications span:not(.notification-badge) {
-    display: none; /* Cacher le texte "Notifications" sur mobile */
+  .role-links {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 0;
+    margin: 10px 0;
   }
 
-  .notification-icon-wrapper {
-    font-size: 1.2rem;
+  .auth-section {
+    order: 3;
+    margin-left: 0;
+  }
+
+  .logout-text {
+    display: none;
+  }
+
+  .user-details {
+    display: none;
   }
 }

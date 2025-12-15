@@ -1,3 +1,4 @@
+// src/app/components/login/login.component.ts
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -27,7 +28,6 @@ export class LoginComponent implements OnInit {
     private router: Router
   ) {}
 
-  // ✅ RÉCUPÉRATION AUTOMATIQUE DES DONNÉES D'INSCRIPTION
   ngOnInit(): void {
     console.log('📱 Page login chargée');
 
@@ -46,17 +46,6 @@ export class LoginComponent implements OnInit {
       this.credentials.password = registeredPassword;
       localStorage.removeItem('registered_password'); // Nettoyer
     }
-
-    // ✅ SI LES DEUX SONT PRÉSENTS, CONNEXION AUTOMATIQUE (optionnel)
-    // Décommentez les lignes suivantes si vous voulez une connexion automatique
-    /*
-    if (registeredUsername && registeredPassword) {
-      console.log('🔄 Connexion automatique...');
-      setTimeout(() => {
-        this.onLogin();
-      }, 500);
-    }
-    */
   }
 
   onLogin(): void {
@@ -81,8 +70,8 @@ export class LoginComponent implements OnInit {
           localStorage.setItem('rememberMe', 'true');
         }
 
-        // ✅ REDIRECTION VERS LA PAGE D'ACCUEIL
-        this.router.navigate(['/']);
+        // ✅ REDIRECTION VERS LA PAGE D'ACCUEIL UNIQUE
+        this.router.navigate(['/events']);
       },
       error: (err: any) => {
         console.error('❌ Erreur connexion:', err);

@@ -47,7 +47,7 @@
         <span class="meta-item">
           <span class="meta-icon">👥</span>
           <span class="meta-label">Places :</span>
-          <span class="meta-value">{{event.maxParticipants}} maximum</span>
+          <span class="meta-value">{{event.currentParticipants}} / {{event.maxParticipants}}</span>
         </span>
       </div>
     </header>
@@ -93,7 +93,7 @@
 
         <div class="info-card">
           <div class="info-item">
-            <span class="info-label">🆔 ID de l'événement :</span>
+            <span class="info-label">🆔 ID :</span>
             <span class="info-value">{{event.id}}</span>
           </div>
           <div class="info-item">
@@ -107,8 +107,20 @@
             </span>
           </div>
           <div class="info-item">
-            <span class="info-label">🏷️ Catégorie :</span>
-            <span class="info-value">{{event.category}}</span>
+            <span class="info-label">💰 Prix :</span>
+            <span class="info-value">{{getPriceDisplay(event.price)}}</span>
+          </div>
+        </div>
+
+        <!-- Barre de capacité -->
+        <div class="capacity-section">
+          <h4>Disponibilité</h4>
+          <div class="capacity-bar">
+            <div class="capacity-fill" [style.width.%]="getOccupancyPercentage()"></div>
+          </div>
+          <div class="capacity-info">
+            <span>{{event.currentParticipants}} inscrits</span>
+            <span>{{event.maxParticipants - event.currentParticipants}} places restantes</span>
           </div>
         </div>
 
@@ -133,40 +145,23 @@
         <div class="registration-card">
           <h3>Participer à cet événement</h3>
 
-          <!-- Barre de capacité -->
-          <div class="capacity-display">
-            <div class="capacity-text">
-              <span class="capacity-label">Capacité :</span>
-              <span class="capacity-value">{{event.maxParticipants}} places</span>
-            </div>
-            <!-- Barre visuelle simple -->
-            <div class="capacity-visual">
-              <div class="capacity-bar">
-                <div class="capacity-fill" [style.width.%]="50"></div>
-              </div>
-              <div class="capacity-stats">
-                <span>50% rempli</span>
-              </div>
-            </div>
-          </div>
-
           <!-- État d'inscription -->
-          <div *ngIf="registrationStatus.isRegistered" class="current-registration">
+          <div *ngIf="isRegistered && currentRegistration" class="current-registration">
             <div class="status-header">
-              <h4>Votre inscription</h4>
-              <div class="status-badge" [style.background]="getStatusBadgeColor(registrationStatus.status)">
-                {{getStatusText(registrationStatus.status)}}
+              <h4>✅ Vous êtes inscrit</h4>
+              <div class="status-badge confirmed">
+                Confirmée
               </div>
             </div>
 
             <div class="registration-details">
-              <p *ngIf="registrationStatus.registrationDate" class="registration-date">
+              <p class="registration-date">
                 <span class="detail-label">Date d'inscription :</span>
-                <span class="detail-value">{{formatShortDate(registrationStatus.registrationDate)}}</span>
+                <span class="detail-value">{{formatDate(currentRegistration.registrationDate)}}</span>
               </p>
-              <p class="registration-id">
-                <span class="detail-label">ID inscription :</span>
-                <span class="detail-value">#{{registrationStatus.registrationId}}</span>
+              <p class="registration-ref">
+                <span class="detail-label">Référence :</span>
+                <span class="detail-value">{{currentRegistration.reference}}</span>
               </p>
             </div>
 
@@ -174,23 +169,27 @@
                     [disabled]="cancelling"
                     class="btn-cancel">
               <span *ngIf="!cancelling">❌ Se désinscrire</span>
-              <span *ngIf="cancelling">⌛ Annulation en cours...</span>
+              <span *ngIf="cancelling">⌛ Annulation...</span>
             </button>
           </div>
 
           <!-- Actions d'inscription -->
-          <div *ngIf="!registrationStatus.isRegistered" class="registration-actions">
+          <div *ngIf="!isRegistered" class="registration-actions">
             <div *ngIf="isLoggedIn()" class="logged-in-actions">
-              <button (click)="registerToEvent()"
-                      [disabled]="registering"
-                      class="btn-register">
-                <span *ngIf="!registering">✅ S'inscrire à cet événement</span>
-                <span *ngIf="registering">⌛ Inscription en cours...</span>
-              </button>
+              <div *ngIf="isEventFull()" class="event-full">
+                <p class="full-warning">❌ Cet événement est complet</p>
+              </div>
 
-              <p class="action-note">
-                Vous recevrez une confirmation par email.
-              </p>
+              <div *ngIf="!isEventFull()">
+                <button (click)="openRegistrationForm()"
+                        class="btn-register">
+                  ✅ S'inscrire à cet événement
+                </button>
+
+                <p class="action-note">
+                  Vous recevrez une confirmation par email.
+                </p>
+              </div>
             </div>
 
             <div *ngIf="!isLoggedIn()" class="login-required">
@@ -212,21 +211,21 @@
               <li>📅 <strong>Date :</strong> {{formatDate(event.date)}}</li>
               <li>⏰ <strong>Heure :</strong> {{formatTime(event.date)}}</li>
               <li>👥 <strong>Participants max :</strong> {{event.maxParticipants}}</li>
+              <li *ngIf="event.price > 0">💰 <strong>Prix :</strong> {{getPriceDisplay(event.price)}}</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <!-- Modal de formulaire d'inscription -->
-  <div *ngIf="showRegistrationForm" class="registration-modal-overlay">
-    <div class="registration-modal-container">
-      <div class="registration-modal">
+
+  <!-- MODALE DE FORMULAIRE D'INSCRIPTION -->
+  <div *ngIf="showRegistrationForm" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-content">
         <app-registration-form
           [eventId]="eventId"
-          [userId]="currentUserId"
-          [eventTitle]="event?.title || ''"
-          [userProfile]="userProfile"
+          [eventTitle]="event?.title || 'Événement'"
           (submitForm)="onRegistrationSubmit($event)"
           (cancel)="closeRegistrationForm()"
         ></app-registration-form>
@@ -234,8 +233,18 @@
     </div>
   </div>
 
-  <!-- Message de succès (optionnel) -->
-  <div *ngIf="registrationSuccess" class="success-toast">
-    ✅ Inscription réussie ! Redirection vers Mes inscriptions...
+  <!-- MODALE DE SUCCÈS -->
+  <div *ngIf="showSuccessModal" class="modal-overlay success">
+    <div class="modal-container success">
+      <div class="modal-content success">
+        <div class="success-icon">✅</div>
+        <h3>Inscription réussie !</h3>
+        <p>Votre inscription a été confirmée.</p>
+        <p>Vous allez être redirigé vers vos inscriptions...</p>
+        <button (click)="closeSuccessModal()" class="btn-success">
+          OK
+        </button>
+      </div>
+    </div>
   </div>
 </div>

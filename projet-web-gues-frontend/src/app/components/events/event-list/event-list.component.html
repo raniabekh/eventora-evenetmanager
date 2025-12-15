@@ -72,12 +72,12 @@
     <!-- Chargement -->
     <div *ngIf="isLoading" class="loading-state">
       <div class="spinner"></div>
-      <p>Chargement...</p>
+      <p>Chargement des événements...</p>
     </div>
 
     <!-- Erreur -->
     <div *ngIf="hasError && !isLoading" class="error-state">
-      <p>Erreur de chargement</p>
+      <p>{{ errorMessage }}</p>
       <button (click)="loadEvents()" class="btn-retry">Réessayer</button>
     </div>
 
@@ -95,8 +95,9 @@
 
       <div class="events-grid">
         <div
-          *ngFor="let event of paginatedEvents; trackBy: trackByEventId"
+          *ngFor="let event of filteredEvents; trackBy: trackByEventId"
           class="event-card"
+          (click)="logEventClick(event)"
         >
           <!-- Catégorie -->
           <div class="event-category" [style.background]="getCategoryColor(event.category)">
@@ -149,21 +150,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Pagination -->
-      <div *ngIf="totalPages > 1" class="pagination">
-        <button (click)="prevPage()" [disabled]="currentPage === 1">←</button>
-
-        <button
-          *ngFor="let page of pageNumbers"
-          (click)="goToPage(page)"
-          [class.active]="page === currentPage"
-        >
-          {{ page }}
-        </button>
-
-        <button (click)="nextPage()" [disabled]="currentPage === totalPages">→</button>
       </div>
     </section>
   </main>

@@ -1,148 +1,127 @@
-// src/app/services/event.service.ts
+// services/event.service.ts
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { Event, EventFilters } from '../models/event.model';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { Event, EventFilters, CreateEventDTO, UpdateEventDTO } from '../models/event.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
-  private events: Event[] = [
-    {
-      id: 1,
-      title: 'Conférence Tech 2024',
-      description: 'Conférence annuelle sur les dernières tendances technologiques.',
-      date: '2024-12-15T09:00:00',
-      location: 'Paris Expo, Porte de Versailles',
-      category: 'CONFERENCE',
-      mediaUrls: ['https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop'],
-      maxParticipants: 200,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 1,
-      isActive: true
-    },
-    {
-      id: 2,
-      title: 'Formation Angular Avancé',
-      description: 'Formation intensive sur Angular, RxJS et bonnes pratiques.',
-      date: '2024-12-20T09:00:00',
-      location: 'En ligne (Zoom)',
-      category: 'FORMATION',
-      mediaUrls: ['https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=500&fit=crop'],
-      maxParticipants: 50,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 2,
-      isActive: true
-    },
-    {
-      id: 3,
-      title: 'Concert Jazz de Noël',
-      description: 'Concert de jazz traditionnel avec buffet de Noël.',
-      date: '2024-12-25T20:00:00',
-      location: 'Salle Pleyel, Lyon',
-      category: 'CONCERT',
-      mediaUrls: ['https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=500&fit=crop'],
-      maxParticipants: 100,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 3,
-      isActive: true
-    },
-    {
-      id: 4,
-      title: 'Forum IA & Innovation',
-      description: 'Débats sur l\'IA et son impact sociétal.',
-      date: '2025-01-10T10:00:00',
-      location: 'Cité des Sciences, Paris',
-      category: 'SCIENTIFIQUE',
-      mediaUrls: ['https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=500&fit=crop'],
-      maxParticipants: 150,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 1,
-      isActive: true
-    },
-    {
-      id: 5,
-      title: 'Exposition Art Contemporain',
-      description: 'Découverte des artistes contemporains.',
-      date: '2025-01-20T14:00:00',
-      location: 'Centre Pompidou, Paris',
-      category: 'CULTUREL',
-      mediaUrls: ['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=500&fit=crop'],
-      maxParticipants: 80,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 4,
-      isActive: true
-    },
-    {
-      id: 6,
-      title: 'Tournoi de Football',
-      description: 'Tournoi annuel entre entreprises.',
-      date: '2025-02-05T09:00:00',
-      location: 'Stade de France',
-      category: 'SPORTIF',
-      mediaUrls: ['https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=500&fit=crop'],
-      maxParticipants: 120,
-      currentParticipants: 85, // ← AJOUTEZ
-      price: 35, // ← AJOUTEZ
-      organizerId: 5,
-      isActive: true
-    }
-  ];
+  // URL via API Gateway
+  private baseUrl = 'http://localhost:8080/api/events';
+
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
+
+  // ========== PUBLIC METHODS ==========
 
   // Récupérer tous les événements
   getEvents(filters?: EventFilters): Observable<Event[]> {
-    let result = [...this.events];
+    let params = new HttpParams();
 
-    if (!filters) return of(result);
-
-    // Filtrage
-    if (filters.keyword?.trim()) {
-      const keyword = filters.keyword.toLowerCase();
-      result = result.filter(event =>
-        event.title.toLowerCase().includes(keyword) ||
-        event.description.toLowerCase().includes(keyword)
-      );
+    if (filters?.keyword) {
+      params = params.set('keyword', filters.keyword);
     }
 
-    if (filters.category) {
-      result = result.filter(event => event.category === filters.category);
+    if (filters?.category) {
+      params = params.set('category', filters.category);
     }
 
-    if (filters.location?.trim()) {
-      const location = filters.location.toLowerCase();
-      result = result.filter(event =>
-        event.location.toLowerCase().includes(location)
-      );
+    if (filters?.location) {
+      params = params.set('location', filters.location);
     }
 
-    return of(result);
+    console.log('🔍 Fetching events from:', `${this.baseUrl}?${params.toString()}`);
+
+    return this.http.get<Event[]>(this.baseUrl, { params }).pipe(
+      catchError(this.handleError<Event[]>('getEvents', []))
+    );
   }
 
   // Récupérer un événement par ID
-  getEventById(id: number): Observable<Event | undefined> {
-    const event = this.events.find(e => e.id === id);
-    return of(event);
+  getEventById(id: number): Observable<Event | null> {
+    console.log(`🔍 Fetching event ${id} from: ${this.baseUrl}/${id}`);
+
+    return this.http.get<Event>(`${this.baseUrl}/${id}`).pipe(
+      catchError(this.handleError<Event | null>(`getEvent id=${id}`, null))
+    );
+  }
+
+  // Rechercher des événements
+  searchEvents(params: EventFilters): Observable<Event[]> {
+    return this.getEvents(params);
+  }
+
+  // ========== ORGANIZER METHODS ==========
+
+  // Récupérer les événements d'un organisateur
+  getEventsByOrganizer(organizerId: number): Observable<Event[]> {
+    console.log(`📋 Fetching events for organizer ${organizerId}`);
+
+    return this.http.get<Event[]>(`${this.baseUrl}/organizer/${organizerId}`).pipe(
+      catchError(this.handleError<Event[]>('getEventsByOrganizer', []))
+    );
+  }
+
+  // Créer un événement
+  createEvent(eventData: CreateEventDTO): Observable<Event | null> {
+    console.log('➕ Creating event:', eventData);
+
+    return this.http.post<Event>(this.baseUrl, eventData).pipe(
+      catchError(this.handleError<Event | null>('createEvent', null))
+    );
+  }
+
+  // Mettre à jour un événement
+  updateEvent(id: number, eventData: UpdateEventDTO): Observable<Event | null> {
+    console.log(`✏️ Updating event ${id}:`, eventData);
+
+    return this.http.put<Event>(`${this.baseUrl}/${id}`, eventData).pipe(
+      catchError(this.handleError<Event | null>(`updateEvent id=${id}`, null))
+    );
+  }
+
+  // Supprimer un événement
+  deleteEvent(id: number): Observable<boolean> {
+    console.log(`🗑️ Deleting event ${id}`);
+
+    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
+      map(() => true),
+      catchError(this.handleError<boolean>(`deleteEvent id=${id}`, false))
+    );
+  }
+
+  // ========== HELPER METHODS ==========
+
+  private handleError<T>(operation = 'operation', result?: T) {
+    return (error: any): Observable<T> => {
+      console.error(`${operation} failed:`, error);
+      return of(result as T);
+    };
   }
 
   // Catégories disponibles
-  getCategories() {
+  getCategories(): { value: string; label: string; icon: string; color: string }[] {
     return [
       { value: 'CONFERENCE', label: 'Conférence', icon: '🎤', color: '#3B82F6' },
       { value: 'FORMATION', label: 'Formation', icon: '🎓', color: '#10B981' },
       { value: 'CONCERT', label: 'Concert', icon: '🎵', color: '#8B5CF6' },
-      { value: 'SCIENTIFIQUE', label: 'Scientifique', icon: '🔬', color: '#EF4444' },
-      { value: 'CULTUREL', label: 'Culturel', icon: '🏛️', color: '#F59E0B' },
-      { value: 'SPORTIF', label: 'Sportif', icon: '⚽', color: '#DC2626' },
-      { value: 'AUTRE', label: 'Autre', icon: '🌟', color: '#8B5CF6' }
+      { value: 'SPORT', label: 'Sport', icon: '⚽', color: '#EF4444' },
+      { value: 'NETWORKING', label: 'Networking', icon: '🤝', color: '#F59E0B' },
+      { value: 'WORKSHOP', label: 'Atelier', icon: '🔧', color: '#EC4899' },
+      { value: 'EXPOSITION', label: 'Exposition', icon: '🎨', color: '#6366F1' },
+      { value: 'FESTIVAL', label: 'Festival', icon: '🎉', color: '#F97316' },
+      { value: 'SEMINAIRE', label: 'Séminaire', icon: '📊', color: '#06B6D4' },
+      { value: 'AUTRE', label: 'Autre', icon: '🌟', color: '#6B7280' }
     ];
   }
 
-  // Formatage de dates
+  // Formatage des dates
   formatEventDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
@@ -158,8 +137,8 @@ export class EventService {
   formatShortDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   }
@@ -183,12 +162,14 @@ export class EventService {
     return cat?.color || '#6B7280';
   }
 
+  getCategoryLabel(category: string): string {
+    const cat = this.getCategories().find(c => c.value === category);
+    return cat?.label || category;
+  }
+
   // Capacité
   calculateAvailableSpots(event: Event): number {
-    // Simulation réaliste
-    const min = Math.floor(event.maxParticipants * 0.2);
-    const max = Math.floor(event.maxParticipants * 0.8);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    return event.availablePlaces || (event.maxParticipants - event.currentParticipants) || 0;
   }
 
   getOccupancyPercentage(event: Event): number {
@@ -198,6 +179,26 @@ export class EventService {
   }
 
   isEventFull(event: Event): boolean {
-    return this.getOccupancyPercentage(event) >= 95;
+    return this.calculateAvailableSpots(event) <= 0;
+  }
+
+  // Prix
+  getPriceDisplay(price: number): string {
+    if (!price || price === 0) {
+      return 'Gratuit';
+    }
+    return `${price.toFixed(2)} €`;
+  }
+
+  // URL d'image par défaut
+  getEventImage(event: Event): string {
+    if (event.mediaUrls && event.mediaUrls.length > 0) {
+      return event.mediaUrls[0];
+    }
+    if (event.imageUrl) {
+      return event.imageUrl;
+    }
+    // Image par défaut
+    return 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=500&fit=crop';
   }
 }

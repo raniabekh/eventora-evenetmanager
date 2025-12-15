@@ -3,9 +3,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { RegistrationService } from '../../../services/registration.service';
-import { AuthService } from '../../../services/auth.service';
+import {
+  RegistrationService,
+  Registration
+} from '../../../services/registration.service';
 import { EventService } from '../../../services/event.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-my-registrations',
@@ -15,62 +18,15 @@ import { EventService } from '../../../services/event.service';
   styleUrls: ['./my-registrations.component.css']
 })
 export class MyRegistrationsComponent implements OnInit {
-  // Données mockées pour tester
-  registrations = [
-    {
-      id: 1,
-      eventId: 1,
-      eventTitle: 'Conférence Tech 2024',
-      eventDate: '2024-12-15T09:00:00',
-      eventLocation: 'Paris Expo',
-      eventCategory: 'CONFERENCE',
-      status: 'CONFIRMED',
-      registrationDate: '2024-12-01T10:30:00'
-    },
-    {
-      id: 2,
-      eventId: 2,
-      eventTitle: 'Formation Angular',
-      eventDate: '2024-12-20T09:00:00',
-      eventLocation: 'En ligne',
-      eventCategory: 'FORMATION',
-      status: 'PENDING',
-      registrationDate: '2024-12-02T14:15:00'
-    },
-    {
-      id: 3,
-      eventId: 3,
-      eventTitle: 'Concert Jazz de Noël',
-      eventDate: '2024-12-25T20:00:00',
-      eventLocation: 'Salle Pleyel, Lyon',
-      eventCategory: 'CONCERT',
-      status: 'CANCELLED',
-      registrationDate: '2024-11-28T09:45:00'
-    }
-  ];
-
-  // Propriétés calculées pour les compteurs
-  get confirmedCount(): number {
-    return this.registrations.filter(r => r.status === 'CONFIRMED').length;
-  }
-
-  get pendingCount(): number {
-    return this.registrations.filter(r => r.status === 'PENDING').length;
-  }
-
-  get cancelledCount(): number {
-    return this.registrations.filter(r => r.status === 'CANCELLED').length;
-  }
+  registrations: Registration[] = [];
+  filteredRegistrations: Registration[] = [];
 
   // États
-  loading = false;  // ← DÉSACTIVÉ pour l'instant
+  loading = true;
   error = '';
 
   // Filtres
   statusFilter = 'ALL';
-
-  // User ID
-  currentUserId = 100;
 
   constructor(
     private registrationService: RegistrationService,
@@ -83,25 +39,74 @@ export class MyRegistrationsComponent implements OnInit {
   }
 
   loadRegistrations(): void {
-    // CHARGEMENT INSTANTANÉ - pas de délai
     this.loading = true;
-    this.loading = false; // ← DÉSACTIVÉ IMMÉDIATEMENT
+
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) {
+      this.error = 'Vous devez être connecté';
+      this.loading = false;
+      return;
+    }
+
+    this.registrationService.getUserRegistrations(currentUser.id).subscribe({
+      next: (regs) => {
+        this.registrations = regs;
+        this.applyFilter();
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error loading registrations:', err);
+        this.error = 'Erreur lors du chargement des inscriptions';
+        this.loading = false;
+      }
+    });
   }
 
-  // Filtrage
-  get filteredRegistrations() {
+  // Appliquer le filtre
+  applyFilter(): void {
     if (this.statusFilter === 'ALL') {
-      return this.registrations;
+      this.filteredRegistrations = [...this.registrations];
+    } else {
+      this.filteredRegistrations = this.registrations.filter(
+        r => r.status === this.statusFilter
+      );
     }
-    return this.registrations.filter(r => r.status === this.statusFilter);
+  }
+
+  // Compteurs
+  get confirmedCount(): number {
+    return this.registrations.filter(r => r.status === 'CONFIRMED').length;
+  }
+
+  get pendingCount(): number {
+    return this.registrations.filter(r => r.status === 'PENDING').length;
+  }
+
+  get cancelledCount(): number {
+    return this.registrations.filter(r => r.status === 'CANCELLED').length;
   }
 
   // Annuler une inscription
   cancelRegistration(registrationId: number): void {
-    if (confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) {
-      console.log('Annulation de l\'inscription:', registrationId);
-      // Ici, plus tard : appel au service
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) {
+      return;
     }
+
+    this.registrationService.cancelRegistration(registrationId).subscribe({
+      next: () => {
+        // Mettre à jour localement
+        const index = this.registrations.findIndex(r => r.id === registrationId);
+        if (index !== -1) {
+          this.registrations[index].status = 'CANCELLED';
+          this.applyFilter();
+        }
+        alert('Inscription annulée avec succès');
+      },
+      error: (err) => {
+        console.error('Error cancelling registration:', err);
+        alert('Erreur lors de l\'annulation');
+      }
+    });
   }
 
   // Utilitaires
@@ -114,30 +119,15 @@ export class MyRegistrationsComponent implements OnInit {
   }
 
   getStatusIcon(status: string): string {
-    switch (status) {
-      case 'CONFIRMED': return '✅';
-      case 'PENDING': return '⏳';
-      case 'CANCELLED': return '❌';
-      default: return '📅';
-    }
+    return this.registrationService.getStatusIcon(status);
   }
 
   getStatusColor(status: string): string {
-    switch (status) {
-      case 'CONFIRMED': return '#10B981';
-      case 'PENDING': return '#F59E0B';
-      case 'CANCELLED': return '#EF4444';
-      default: return '#6B7280';
-    }
+    return this.registrationService.getStatusColor(status);
   }
 
   getStatusText(status: string): string {
-    switch (status) {
-      case 'CONFIRMED': return 'Confirmée';
-      case 'PENDING': return 'En attente';
-      case 'CANCELLED': return 'Annulée';
-      default: return 'Inconnu';
-    }
+    return this.registrationService.getStatusText(status);
   }
 
   getCategoryIcon(category: string): string {
@@ -148,12 +138,7 @@ export class MyRegistrationsComponent implements OnInit {
     return this.eventService.getCategoryColor(category);
   }
 
-  isLoggedIn(): boolean {
-    return this.authService.isLoggedIn();
-  }
-
-  // Pour la pagination/détection
-  trackByRegistrationId(index: number, registration: any): number {
-    return registration.id;
+  trackByRegistrationId(index: number, reg: Registration): number {
+    return reg.id;
   }
 }

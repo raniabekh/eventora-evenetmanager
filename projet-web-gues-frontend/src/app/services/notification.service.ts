@@ -42,7 +42,7 @@ export class NotificationService {
         userId: this.extractUserId(this.authService.getCurrentUser() || { id: 100 }),
         title: 'Inscription confirmée !',
         message: 'Votre inscription à l\'événement "Conférence Tech 2024" a été confirmée.',
-        type: 'registration_confirmed',
+        type: 'registration_confirmed' as NotificationType, // CAST EN NotificationType
         read: false,
         createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
         data: { eventId: 123, eventTitle: 'Conférence Tech 2024' },
@@ -53,7 +53,7 @@ export class NotificationService {
         userId: this.extractUserId(this.authService.getCurrentUser() || { id: 100 }),
         title: 'Rappel événement',
         message: 'N\'oubliez pas votre événement "Atelier Angular" demain à 14h.',
-        type: 'event_reminder',
+        type: 'event_reminder' as NotificationType, // CAST EN NotificationType
         read: false,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         data: { eventId: 456, eventTime: '2024-01-15T14:00:00' },
@@ -64,7 +64,7 @@ export class NotificationService {
         userId: this.extractUserId(this.authService.getCurrentUser() || { id: 100 }),
         title: 'Nouvel événement disponible',
         message: 'Un nouvel événement "Soirée Networking" a été publié.',
-        type: 'new_event',
+        type: 'new_event' as NotificationType, // CAST EN NotificationType
         read: true,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         actionUrl: '/events/789',
@@ -76,7 +76,7 @@ export class NotificationService {
         userId: this.extractUserId(this.authService.getCurrentUser() || { id: 100 }),
         title: 'Événement modifié',
         message: 'L\'événement "Formation React" a été mis à jour.',
-        type: 'event_updated',
+        type: 'event_updated' as NotificationType, // CAST EN NotificationType
         read: true,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
         data: { eventId: 321, changes: ['date', 'location'] },
@@ -87,7 +87,7 @@ export class NotificationService {
         userId: this.extractUserId(this.authService.getCurrentUser() || { id: 100 }),
         title: 'Promotion spéciale',
         message: 'Profitez de 20% de réduction sur votre prochaine inscription !',
-        type: 'promotion',
+        type: 'promotion' as NotificationType, // CAST EN NotificationType
         read: false,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
         actionUrl: '/promotions',
@@ -198,12 +198,15 @@ export class NotificationService {
     const user = this.authService.getCurrentUser();
     const userId = this.extractUserId(user);
 
+    // CORRECTION : Définir un type par défaut qui existe dans NotificationType
+    const defaultType: NotificationType = 'system';
+
     const newNotification: Notification = {
       id: Date.now(),
       userId,
       title: notificationData.title || 'Nouvelle notification',
       message: notificationData.message || '',
-      type: notificationData.type || 'system',
+      type: notificationData.type || defaultType, // Utiliser le type par défaut
       read: false,
       createdAt: new Date().toISOString(),
       data: notificationData.data || null,
@@ -221,21 +224,19 @@ export class NotificationService {
 
   createMockNotification(type: NotificationType = 'system'): void {
     const messages: Record<string, string> = {
-      registration_confirmed: 'Votre inscription a été confirmée avec succès!',
-      event_reminder: 'N\'oubliez pas votre événement demain!',
-      new_event: 'Un nouvel événement vient d\'être publié!',
-      event_updated: 'Un événement auquel vous êtes inscrit a été mis à jour.',
-      event_cancelled: 'Un événement auquel vous êtes inscrit a été annulé.',
-      system: 'Notification système importante.',
-      promotion: 'Profitez de notre promotion spéciale!'
+      'registration_confirmed': 'Votre inscription a été confirmée avec succès!',
+      'event_reminder': 'N\'oubliez pas votre événement demain!',
+      'new_event': 'Un nouvel événement vient d\'être publié!',
+      'event_updated': 'Un événement auquel vous êtes inscrit a été mis à jour.',
+      'event_cancelled': 'Un événement auquel vous êtes inscrit a été annulé.',
+      'system': 'Notification système importante.',
+      'promotion': 'Profitez de notre promotion spéciale!'
     };
-
-    const user = this.authService.getCurrentUser();
 
     const notification: Partial<Notification> = {
       title: this.getTitleByType(type),
       message: messages[type] || 'Nouvelle notification disponible.',
-      type,
+      type: type,
       data: { test: true, timestamp: new Date().toISOString() },
       priority: 'medium'
     };
@@ -245,13 +246,13 @@ export class NotificationService {
 
   private getTitleByType(type: NotificationType): string {
     const titles: Record<string, string> = {
-      registration_confirmed: 'Inscription confirmée',
-      event_reminder: 'Rappel événement',
-      new_event: 'Nouvel événement',
-      event_updated: 'Événement modifié',
-      event_cancelled: 'Événement annulé',
-      system: 'Notification système',
-      promotion: 'Promotion spéciale'
+      'registration_confirmed': 'Inscription confirmée',
+      'event_reminder': 'Rappel événement',
+      'new_event': 'Nouvel événement',
+      'event_updated': 'Événement modifié',
+      'event_cancelled': 'Événement annulé',
+      'system': 'Notification système',
+      'promotion': 'Promotion spéciale'
     };
 
     return titles[type] || 'Notification';
@@ -270,7 +271,7 @@ export class NotificationService {
         if (permission === 'granted') {
           console.log('Permission de notification accordée');
           // Créer une notification de test
-          this.createMockNotification('system');
+          this.createMockNotification('system' as NotificationType);
         }
       });
     }
@@ -306,5 +307,21 @@ export class NotificationService {
 
   getNotificationsByType(type: NotificationType): Notification[] {
     return this.notifications.value.filter(n => n.type === type);
+  }
+
+  // NOUVELLE MÉTHODE : Pour convertir les types backend vers frontend
+  convertBackendType(backendType: string): NotificationType {
+    const typeMap: Record<string, NotificationType> = {
+      'CONFIRMATION': 'registration_confirmed',
+      'REMINDER': 'event_reminder',
+      'CANCELLATION': 'event_cancelled',
+      'UPDATE': 'event_updated',
+      'NEW_REGISTRATION': 'NEW_REGISTRATION',
+      'REGISTRATION_CANCELLED': 'REGISTRATION_CANCELLED',
+      'PARTICIPANT_QUESTION': 'PARTICIPANT_QUESTION',
+      'FEEDBACK_RECEIVED': 'FEEDBACK_RECEIVED'
+    };
+
+    return typeMap[backendType] || 'system';
   }
 }

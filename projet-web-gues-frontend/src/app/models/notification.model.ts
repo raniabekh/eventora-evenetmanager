@@ -2,31 +2,44 @@
 export interface Notification {
   id: number;
   userId: number;
-  type: NotificationType;
   title: string;
   message: string;
-  data?: any; // Données supplémentaires
+  type: NotificationType;
   read: boolean;
   createdAt: string;
-  icon?: string;
+  data?: any;
   actionUrl?: string;
-  priority: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high';
 }
 
+// AJOUTEZ TOUS LES TYPES QUE VOUS UTILISEZ
 export type NotificationType =
-  | 'registration_confirmed'   // Inscription confirmée
-  | 'event_reminder'           // Rappel événement
-  | 'event_updated'            // Événement modifié
-  | 'event_cancelled'          // Événement annulé
-  | 'new_event'                // Nouvel événement
-  | 'message'                  // Message personnel
-  | 'system'                   // Notification système
-  | 'promotion';               // Promotion/spécial
+// Types participants (existants dans votre service)
+  | 'registration_confirmed'
+  | 'event_reminder'
+  | 'new_event'
+  | 'event_updated'
+  | 'event_cancelled'
+  | 'system'
+  | 'promotion'
+
+  // Types backend (votre microservice)
+  | 'CONFIRMATION'
+  | 'REMINDER'
+  | 'CANCELLATION'
+  | 'UPDATE'
+
+  // Types organisateurs (si vous en avez besoin)
+  | 'NEW_REGISTRATION'
+  | 'REGISTRATION_CANCELLED'
+  | 'PARTICIPANT_QUESTION'
+  | 'FEEDBACK_RECEIVED'
+  | 'EVENT_REMINDER_ORGANIZER'
+  | 'EVENT_ANALYTICS_READY'
+  | 'CUSTOM_NOTIFICATION';
 
 export interface NotificationCount {
   total: number;
   unread: number;
-  byType?: {
-    [key in NotificationType]?: number; // Rendre optionnel
-  };
+  byType?: { [key in NotificationType]?: number };
 }

@@ -2,75 +2,98 @@
 <div class="app-container">
   <nav class="main-nav">
     <div class="nav-container">
-      <a routerLink="/" class="logo">Eventora</a>
+      <!-- Logo avec lien vers la page d'accueil selon le rôle -->
+      <a [routerLink]="getHomeLink()" class="logo">
+         Eventora
+      </a>
 
       <div class="nav-links">
-        <!-- Toujours visible -->
-        <a routerLink="/events" routerLinkActive="active">Événements</a>
+        <!-- ============ PARTICIPANT ============ -->
+        <div *ngIf="isLoggedIn() && user?.role === 'PARTICIPANT'" class="role-links">
+          <!-- Événements (SEULEMENT pour participants) -->
+          <a routerLink="/events" routerLinkActive="active" class="nav-item">
 
-        <!-- Seulement si connecté ET ORGANISATEUR -->
-        <a routerLink="/organizer/dashboard"
-           routerLinkActive="active"
-           *ngIf="isLoggedIn() && user?.role === 'ORGANIZER'"
-           class="nav-link-organizer">
-          🏢 Dashboard
-        </a>
+            Événements
+          </a>
 
-        <!-- Seulement si connecté -->
-        <a routerLink="/my-registrations"
-           routerLinkActive="active"
-           *ngIf="isLoggedIn()">
-          Mes inscriptions
-        </a>
+          <!-- Mes inscriptions -->
+          <a routerLink="/my-registrations" routerLinkActive="active" class="nav-item">
 
-        <!-- NOTIFICATIONS -->
-        <a routerLink="/notifications"
-           routerLinkActive="active"
-           *ngIf="isLoggedIn()">
-          🔔 Notifications
-        </a>
+            Mes inscriptions
+            <span *ngIf="hasPendingRegistrations()" class="badge">{{pendingRegistrationsCount}}</span>
+          </a>
 
-        <!-- Seulement si NON connecté -->
-        <a routerLink="/login"
-           routerLinkActive="active"
-           *ngIf="!isLoggedIn()">
-          Connexion
-        </a>
+          <!-- Notifications participant -->
+          <a routerLink="/notifications" routerLinkActive="active" class="nav-item notification-link">
 
-        <a routerLink="/register"
-           routerLinkActive="active"
-           *ngIf="!isLoggedIn()">
-          Inscription
-        </a>
+            Notifications
+            <span *ngIf="unreadCount > 0" class="notification-badge">{{unreadCount}}</span>
+          </a>
+        </div>
 
-        <!-- Seulement si connecté -->
-        <button *ngIf="isLoggedIn()"
-                (click)="logout()"
-                class="btn-logout">
-          🚪 Déconnexion
-        </button>
+        <!-- ============ ORGANIZER ============ -->
+        <div *ngIf="isLoggedIn() && user?.role === 'ORGANIZER'" class="role-links">
+          <!-- Dashboard organisateur -->
+          <a routerLink="/organizer/dashboard" routerLinkActive="active" class="nav-item organizer-link">
 
-        <!-- BOUTONS DE DÉVELOPPEMENT (à cacher en production) -->
-        <div *ngIf="isLoggedIn()" class="dev-buttons">
-          <button (click)="switchRole()"
-                  class="dev-switch-btn"
-                  title="Changer de rôle (dev)">
-            🔄 {{ user?.role || 'No role' }}
-          </button>
+            Dashboard
+          </a>
 
-          <button *ngIf="!isLoggedIn()"
-                  (click)="mockLogin('ORGANIZER')"
-                  class="dev-mock-btn"
-                  title="Mock login organisateur">
-            🏢 Mock Org
-          </button>
+          <!-- Gérer événements -->
+          <a routerLink="/organizer/manage-events" routerLinkActive="active" class="nav-item">
 
-          <button *ngIf="!isLoggedIn()"
-                  (click)="mockLogin('PARTICIPANT')"
-                  class="dev-mock-btn"
-                  title="Mock login participant">
-            👤 Mock Part
-          </button>
+            Mes événements
+          </a>
+
+          <!-- Créer événement -->
+          <a routerLink="/create-event" routerLinkActive="active" class="nav-item">
+
+            Créer
+          </a>
+
+          <!-- Notifications organisateur -->
+          <a routerLink="/organizer/notifications" routerLinkActive="active" class="nav-item notification-link">
+
+            Notifications
+            <span *ngIf="unreadOrganizerCount > 0" class="notification-badge">{{unreadOrganizerCount}}</span>
+          </a>
+        </div>
+
+        <!-- ============ SECTION AUTH ============ -->
+        <div class="auth-section">
+          <!-- Non connecté -->
+          <ng-container *ngIf="!isLoggedIn()">
+            <a routerLink="/login" routerLinkActive="active" class="auth-link">
+              <span class="auth-icon">🔑</span>
+              Connexion
+            </a>
+            <a routerLink="/register" routerLinkActive="active" class="auth-link register-link">
+
+              Inscription
+            </a>
+          </ng-container>
+
+          <!-- Connecté -->
+          <ng-container *ngIf="isLoggedIn()">
+            <!-- Informations utilisateur -->
+            <div class="user-info">
+              <div class="user-avatar" [class.organizer]="user?.role === 'ORGANIZER'">
+                {{ user?.role === 'ORGANIZER' ? '🏢' : '👤' }}
+              </div>
+              <div class="user-details">
+                <span class="username">{{ user?.username }}</span>
+                <span class="user-role" [class.role-organizer]="user?.role === 'ORGANIZER'">
+                  {{ user?.role === 'ORGANIZER' ? 'Organisateur' : 'Participant' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Déconnexion -->
+            <button (click)="logout()" class="btn-logout" title="Déconnexion">
+              <span class="logout-icon">🚪</span>
+              <span class="logout-text">Déconnexion</span>
+            </button>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -82,5 +105,6 @@
 
   <footer class="main-footer">
     <p>© 2025 Eventora - Gestion d'événements by Rania BEKHOUCHE</p>
+    <p class="footer-version">v1.0.0 | Microservices Architecture</p>
   </footer>
 </div>

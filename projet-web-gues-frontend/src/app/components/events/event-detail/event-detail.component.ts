@@ -7,7 +7,8 @@ import { EventService } from '../../../services/event.service';
 import { RegistrationService } from '../../../services/registration.service';
 import { AuthService } from '../../../services/auth.service';
 import { Event } from '../../../models/event.model';
-import { RegistrationStatus } from '../../../models/registration.model';
+
+// IMPORT DU FORMULAIRE
 import { RegistrationFormComponent } from '../registration-form/registration-form.component';
 
 @Component({
@@ -17,7 +18,7 @@ import { RegistrationFormComponent } from '../registration-form/registration-for
     CommonModule,
     FormsModule,
     RouterModule,
-    RegistrationFormComponent
+    RegistrationFormComponent // AJOUTER ICI
   ],
   templateUrl: './event-detail.component.html',
   styleUrls: ['./event-detail.component.css']
@@ -27,34 +28,33 @@ export class EventDetailComponent implements OnInit {
   eventId: number = 0;
   loading = true;
   error = '';
-  registrationSuccess = false;
+
   // État d'inscription
-  registrationStatus: RegistrationStatus = { isRegistered: false };
+  isRegistered = false;
+  currentRegistration: any = null;
   registering = false;
   cancelling = false;
 
-  // Galerie
+  // Galerie d'images
   currentImageIndex = 0;
 
-  // User ID mocké
-  currentUserId = 100;
-
-  // Formulaire
+  // MODALE DE FORMULAIRE
   showRegistrationForm = false;
+  showSuccessModal = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private eventService: EventService,
     private registrationService: RegistrationService,
-    private authService: AuthService
+    public authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       this.eventId = +params['id'];
       this.loadEvent();
-      this.loadRegistrationStatus();
+      this.checkRegistration();
     });
   }
 
@@ -62,102 +62,123 @@ export class EventDetailComponent implements OnInit {
     this.loading = true;
     this.eventService.getEventById(this.eventId).subscribe({
       next: (event) => {
-        if (event) {
-          this.event = event;
-        } else {
-          this.error = 'Événement non trouvé';
-          this.event = null;
-        }
+        this.event = event || null;
         this.loading = false;
+        console.log('✅ Event loaded:', event);
       },
       error: (err) => {
+        console.error('❌ Error loading event:', err);
         this.error = 'Événement non trouvé';
         this.loading = false;
-        console.error('Error loading event:', err);
       }
     });
   }
 
-  loadRegistrationStatus(): void {
-    this.registrationService.getRegistrationStatus(this.eventId, this.currentUserId)
-      .subscribe(status => {
-        this.registrationStatus = status;
+  checkRegistration(): void {
+    if (!this.isLoggedIn()) return;
+
+    const userId = this.authService.getUserId();
+    if (!userId) return;
+
+    this.registrationService.getUserRegistrations(userId)
+      .subscribe({
+        next: (registrations) => {
+          const registration = registrations.find(reg => reg.eventId === this.eventId);
+          this.isRegistered = !!registration;
+          this.currentRegistration = registration || null;
+          console.log('📋 Registration status:', { isRegistered: this.isRegistered });
+        },
+        error: (err) => {
+          console.error('❌ Error checking registration:', err);
+        }
       });
   }
 
-  // Ouvre le formulaire modal
+  // ========== GESTION DU FORMULAIRE D'INSCRIPTION ==========
+
+  // Ouvrir le formulaire
   openRegistrationForm(): void {
     if (!this.isLoggedIn()) {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/login'], {
+        queryParams: { returnUrl: `/events/${this.eventId}` }
+      });
       return;
     }
 
-    if (this.registrationStatus.isRegistered) {
+    if (this.isRegistered) {
       alert('Vous êtes déjà inscrit à cet événement !');
       return;
     }
 
+    // Vérifier si l'événement est complet
+    if (this.isEventFull()) {
+      alert('Désolé, cet événement est complet !');
+      return;
+    }
+
+    // Afficher le formulaire
     this.showRegistrationForm = true;
   }
 
-  // Ferme le formulaire modal
+  // Fermer le formulaire
   closeRegistrationForm(): void {
     this.showRegistrationForm = false;
   }
 
-  // Méthode existante (pour compatibilité)
-  registerToEvent(): void {
-    this.openRegistrationForm();
+  // Gérer la soumission du formulaire
+  onRegistrationSubmit(result: any): void {
+    if (result.success) {
+      this.isRegistered = true;
+      this.currentRegistration = result.registration;
+      this.showRegistrationForm = false;
+
+      // Afficher une modal de succès
+      this.showSuccessModal = true;
+
+      // Rediriger après 3 secondes
+      setTimeout(() => {
+        this.router.navigate(['/my-registrations']);
+      }, 3000);
+    } else {
+      // Gérer l'erreur
+      alert('Erreur lors de l\'inscription: ' + result.message);
+      this.showRegistrationForm = false;
+    }
   }
 
-  // Traite la soumission du formulaire
-  onRegistrationSubmit(formData: any): void {
-    console.log('Données du formulaire:', formData);
-
-    this.registering = true;
-
-    // Utilise la méthode existante du service
-    this.registrationService.registerToEvent(this.eventId, this.currentUserId)
-      .subscribe({
-        next: (registration) => {
-          this.registering = false;
-          this.registrationStatus = {
-            isRegistered: true,
-            registrationId: registration.id,
-            status: registration.status,
-            registrationDate: registration.registrationDate
-          };
-          this.showRegistrationForm = false;
-
-          // Redirection après 1.5 secondes
-          setTimeout(() => {
-            this.router.navigate(['/my-registrations']);
-          }, 1500);
-        },
-        error: (err) => {
-          this.registering = false;
-          console.error('Registration error:', err);
-          alert('❌ Erreur lors de l\'inscription');
-        }
-      });
-  }
-
+  // Annuler l'inscription
   cancelRegistration(): void {
-    if (!this.registrationStatus.registrationId) return;
+    if (!this.currentRegistration?.id) {
+      console.error('No registration ID found');
+      return;
+    }
+
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) {
+      return;
+    }
 
     this.cancelling = true;
-    this.registrationService.cancelRegistration(this.registrationStatus.registrationId)
+    this.registrationService.cancelRegistration(this.currentRegistration.id)
       .subscribe({
         next: () => {
           this.cancelling = false;
-          this.registrationStatus = { isRegistered: false };
+          this.isRegistered = false;
+          this.currentRegistration = null;
+          alert('✅ Inscription annulée avec succès');
+          console.log('✅ Registration cancelled');
+
+          // Recharger l'événement pour mettre à jour le compteur
+          this.loadEvent();
         },
         error: (err) => {
           this.cancelling = false;
-          console.error('Cancellation error:', err);
+          console.error('❌ Cancellation error:', err);
+          alert('❌ Erreur lors de l\'annulation');
         }
       });
   }
+
+  // ========== UTILITAIRES ==========
 
   // Galerie d'images
   nextImage(): void {
@@ -169,61 +190,36 @@ export class EventDetailComponent implements OnInit {
   prevImage(): void {
     if (this.event?.mediaUrls && this.event.mediaUrls.length > 0) {
       this.currentImageIndex = this.currentImageIndex === 0
-        ? (this.event.mediaUrls.length - 1)
-        : (this.currentImageIndex - 1);
+        ? this.event.mediaUrls.length - 1
+        : this.currentImageIndex - 1;
     }
   }
 
-  // CORRIGÉ : Gestion de la propriété phone
-  get userProfile() {
-    const userData = this.authService.getCurrentUser() as any; // Utilisez 'any' temporairement
-    return {
-      fullName: userData?.username || 'Utilisateur',
-      email: userData?.email || '',
-      phone: userData?.phone || '' // Maintenant ça fonctionne avec 'any'
-    };
+  // Vérifier si l'événement est complet
+  isEventFull(): boolean {
+    if (!this.event) return false;
+    return this.event.currentParticipants >= this.event.maxParticipants;
   }
 
-  // Utilitaires
-  formatDate(dateString: string): string {
-    return this.eventService.formatEventDate(dateString);
+  // Calculer le pourcentage de remplissage
+  getOccupancyPercentage(): number {
+    if (!this.event || this.event.maxParticipants === 0) return 0;
+    return Math.round((this.event.currentParticipants / this.event.maxParticipants) * 100);
   }
 
-  formatShortDate(dateString: string): string {
-    return this.eventService.formatShortDate(dateString);
-  }
+  // Méthodes pass-through
+  formatDate = (date: string) => this.eventService.formatEventDate(date);
+  formatShortDate = (date: string) => this.eventService.formatShortDate(date);
+  formatTime = (date: string) => this.eventService.formatTime(date);
+  getCategoryIcon = (category: string) => this.eventService.getCategoryIcon(category);
+  getCategoryColor = (category: string) => this.eventService.getCategoryColor(category);
+  getPriceDisplay = (price: number) => this.eventService.getPriceDisplay(price);
+  getEventImage = (event: Event) => this.eventService.getEventImage(event);
+  isLoggedIn = () => this.authService.isLoggedIn();
 
-  formatTime(dateString: string): string {
-    return this.eventService.formatTime(dateString);
-  }
-
-  getCategoryIcon(category: string): string {
-    return this.eventService.getCategoryIcon(category);
-  }
-
-  getCategoryColor(category: string): string {
-    return this.eventService.getCategoryColor(category);
-  }
-
-  isLoggedIn(): boolean {
-    return this.authService.isLoggedIn();
-  }
-
-  getStatusBadgeColor(status: string | undefined): string {
-    switch (status) {
-      case 'CONFIRMED': return '#10B981';
-      case 'PENDING': return '#F59E0B';
-      case 'CANCELLED': return '#EF4444';
-      default: return '#6B7280';
-    }
-  }
-
-  getStatusText(status: string | undefined): string {
-    switch (status) {
-      case 'CONFIRMED': return 'Confirmée';
-      case 'PENDING': return 'En attente';
-      case 'CANCELLED': return 'Annulée';
-      default: return 'Non inscrit';
-    }
+  // Fermer la modal de succès
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+    this.router.navigate(['/my-registrations']);
   }
 }

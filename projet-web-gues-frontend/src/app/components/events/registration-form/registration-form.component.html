@@ -1,6 +1,5 @@
 <!-- src/app/components/events/registration-form/registration-form.component.html -->
 <div class="registration-form-container">
-
   <!-- En-tête -->
   <div class="form-header">
     <h2>Inscription à l'événement</h2>
@@ -16,108 +15,87 @@
 
   <!-- Formulaire (masqué si succès) -->
   <form *ngIf="!showSuccess" (ngSubmit)="onSubmit()" #registrationForm="ngForm" class="registration-form">
-
-    <!-- Informations personnelles -->
-    <div class="form-section">
-      <h3>📋 Vos informations</h3>
-
-      <!-- Nom complet -->
-      <div class="form-group" [class.has-error]="hasError('fullName')">
-        <label for="fullName" class="form-label">
-          Nom complet *
-          <span *ngIf="hasError('fullName')" class="error-text">
-            {{ getError('fullName') }}
-          </span>
-        </label>
-        <input
-          type="text"
-          id="fullName"
-          [(ngModel)]="formData.fullName"
-          name="fullName"
-          required
-          class="form-input"
-          placeholder="Votre nom et prénom"
-          [class.error]="hasError('fullName')"
-          (blur)="validateForm()"
-        >
-      </div>
-
-      <!-- Email -->
-      <div class="form-group" [class.has-error]="hasError('email')">
-        <label for="email" class="form-label">
-          Email *
-          <span *ngIf="hasError('email')" class="error-text">
-            {{ getError('email') }}
-          </span>
-        </label>
-        <input
-          type="email"
-          id="email"
-          [(ngModel)]="formData.email"
-          name="email"
-          required
-          class="form-input"
-          placeholder="votre@email.com"
-          [class.error]="hasError('email')"
-          (blur)="validateForm()"
-        >
-      </div>
-
-      <!-- Téléphone -->
-      <div class="form-group" [class.has-error]="hasError('phone')">
-        <label for="phone" class="form-label">
-          Téléphone
-          <span class="optional">(optionnel)</span>
-          <span *ngIf="hasError('phone')" class="error-text">
-            {{ getError('phone') }}
-          </span>
-        </label>
-        <input
-          type="tel"
-          id="phone"
-          [ngModel]="formData.phone"
-          (ngModelChange)="formData.phone = $event"
-          (input)="formatPhone($event)"
-          name="phone"
-          class="form-input"
-          placeholder="06 12 34 56 78"
-          [class.error]="hasError('phone')"
-          (blur)="validateForm()"
-        >
-        <small class="hint">Format : 06 12 34 56 78 ou 0612345678</small>
+    <!-- Affichage des erreurs générales -->
+    <div *ngIf="errors.length > 0" class="error-alert">
+      <div class="error-icon">⚠️</div>
+      <div class="error-messages">
+        <p *ngFor="let error of errors" class="error-text">{{ error }}</p>
       </div>
     </div>
 
+    <!-- Nom complet -->
+    <div class="form-group">
+      <label for="participantName" class="form-label">
+        Nom complet *
+      </label>
+      <input
+        type="text"
+        id="participantName"
+        [(ngModel)]="formData.participantName"
+        name="participantName"
+        required
+        class="form-input"
+        placeholder="Votre nom et prénom"
+        [class.error]="hasError('nom')"
+      >
+      <small class="hint">Le nom doit correspondre à votre pièce d'identité</small>
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label for="participantEmail" class="form-label">
+        Email *
+      </label>
+      <input
+        type="email"
+        id="participantEmail"
+        [(ngModel)]="formData.participantEmail"
+        name="participantEmail"
+        required
+        class="form-input"
+        placeholder="votre@email.com"
+        [class.error]="hasError('email')"
+      >
+      <small class="hint">Vous recevrez la confirmation à cette adresse</small>
+    </div>
+
+    <!-- Téléphone -->
+    <div class="form-group">
+      <label for="participantPhone" class="form-label">
+        Téléphone
+        <span class="optional">(optionnel)</span>
+      </label>
+      <input
+        type="tel"
+        id="participantPhone"
+        [(ngModel)]="formData.participantPhone"
+        name="participantPhone"
+        class="form-input"
+        placeholder="06 12 34 56 78"
+        (input)="formatPhone($event)"
+        [class.error]="hasError('téléphone')"
+      >
+      <small class="hint">Format: 06 12 34 56 78 ou 0612345678</small>
+    </div>
+
     <!-- Conditions -->
-    <div class="form-section">
-      <h3>📜 Conditions</h3>
-
-      <div class="form-group checkbox-group" [class.has-error]="hasError('acceptTerms')">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            [(ngModel)]="formData.acceptTerms"
-            name="acceptTerms"
-            required
-            class="checkbox-input"
-          >
-          <span class="checkbox-custom"></span>
-          <span class="checkbox-text">
-            J'accepte les
-            <a href="#" class="terms-link" target="_blank">conditions générales d'utilisation</a>
-            et la
-            <a href="#" class="terms-link" target="_blank">politique de confidentialité</a>
-            *
-          </span>
-        </label>
-        <span *ngIf="hasError('acceptTerms')" class="error-text">
-          {{ getError('acceptTerms') }}
+    <div class="form-group checkbox-group">
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [(ngModel)]="formData.acceptTerms"
+          name="acceptTerms"
+          required
+          class="checkbox-input"
+        >
+        <span class="checkbox-custom"></span>
+        <span class="checkbox-text">
+          J'accepte les
+          <a href="/terms" class="terms-link" target="_blank">conditions générales</a>
+          *
         </span>
-      </div>
-
-      <div class="form-note">
-        <p>🔒 Vos informations seront uniquement utilisées pour la gestion de votre inscription.</p>
-      </div>
+      </label>
+      <small class="hint">Champ obligatoire pour l'inscription</small>
     </div>
 
     <!-- Actions -->
@@ -126,7 +104,7 @@
         type="button"
         (click)="onCancel()"
         class="btn btn-secondary"
-        [disabled]="isSubmitting"
+        [disabled]="isLoading"
       >
         Annuler
       </button>
@@ -134,12 +112,12 @@
       <button
         type="submit"
         class="btn btn-primary"
-        [disabled]="isSubmitting || !formData.acceptTerms"
+        [disabled]="isLoading || !formData.acceptTerms"
       >
-        <span *ngIf="!isSubmitting">
-          ✅ Confirmer l'inscription
+        <span *ngIf="!isLoading">
+          ✅ S'inscrire
         </span>
-        <span *ngIf="isSubmitting">
+        <span *ngIf="isLoading">
           <span class="spinner-small"></span> Traitement...
         </span>
       </button>

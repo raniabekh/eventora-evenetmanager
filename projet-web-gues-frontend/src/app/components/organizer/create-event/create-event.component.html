@@ -1,0 +1,260 @@
+<!-- src/app/components/organizer/create-event/create-event.component.html -->
+<div class="create-event">
+  <!-- En-tête -->
+  <header class="create-header">
+    <h1 class="create-title">
+      <span class="create-icon">➕</span>
+      Créer un nouvel événement
+    </h1>
+    <p class="create-subtitle">
+      Remplissez les informations pour créer votre événement
+    </p>
+  </header>
+
+  <!-- Erreur globale -->
+  <div *ngIf="hasError" class="error-alert">
+    <span class="error-icon">⚠️</span>
+    <span class="error-text">{{ errorMessage }}</span>
+  </div>
+
+  <!-- Avertissement date passée -->
+  <div *ngIf="isPastDate()" class="warning-alert">
+    <span class="warning-icon">⚠️</span>
+    <span class="warning-text">
+      La date sélectionnée est dans le passé
+    </span>
+  </div>
+
+  <!-- Formulaire -->
+  <form [formGroup]="eventForm" class="event-form" (ngSubmit)="submitEvent()">
+
+    <!-- Section 1 : Informations de base -->
+    <section class="form-section">
+      <h2 class="section-title">📝 Informations de base</h2>
+
+      <div class="form-group">
+        <label for="title" class="form-label">
+          Titre de l'événement *
+        </label>
+        <input
+          type="text"
+          id="title"
+          formControlName="title"
+          class="form-input"
+          placeholder="Ex: Conférence Angular 2024"
+          [class.invalid]="titleError">
+
+        <div *ngIf="titleError" class="error-message">
+          {{ titleError }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">
+          Description *
+        </label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-textarea"
+          placeholder="Décrivez votre événement en détail..."
+          rows="4"
+          [class.invalid]="descriptionError"></textarea>
+
+        <div *ngIf="descriptionError" class="error-message">
+          {{ descriptionError }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category" class="form-label">Catégorie *</label>
+          <div class="category-select">
+            <select
+              id="category"
+              formControlName="category"
+              class="form-select"
+              [class.invalid]="eventForm.get('category')?.invalid && eventForm.get('category')?.touched">
+
+              <option *ngFor="let cat of categories" [value]="cat.value">
+                {{ cat.icon }} {{ cat.label }}
+              </option>
+            </select>
+
+            <div class="selected-category-preview" *ngIf="selectedCategory">
+              <span class="category-icon">
+                {{ selectedCategory.icon }}
+              </span>
+              <span class="category-label">
+                {{ selectedCategory.label }}
+              </span>
+            </div>
+          </div>
+
+          <div *ngIf="eventForm.get('category')?.invalid && eventForm.get('category')?.touched"
+               class="error-message">
+            Veuillez sélectionner une catégorie
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2 : Date et lieu -->
+    <section class="form-section">
+      <h2 class="section-title">📅 Date et lieu</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="date" class="form-label">Date *</label>
+          <input
+            type="date"
+            id="date"
+            formControlName="date"
+            class="form-input"
+            [class.invalid]="dateError"
+            [min]="today">
+
+          <div *ngIf="dateError" class="error-message">
+            {{ dateError }}
+          </div>
+
+          <div class="today-info">
+            <small>Aujourd'hui : {{ today | date:'dd/MM/yyyy' }}</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="time" class="form-label">Heure *</label>
+          <input
+            type="time"
+            id="time"
+            formControlName="time"
+            class="form-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="location" class="form-label">Lieu *</label>
+        <input
+          type="text"
+          id="location"
+          formControlName="location"
+          class="form-input"
+          placeholder="Ex: Paris, France ou En ligne"
+          [class.invalid]="locationError">
+
+        <div *ngIf="locationError" class="error-message">
+          {{ locationError }}
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3 : Participants et prix -->
+    <section class="form-section">
+      <h2 class="section-title">👥 Participants et prix</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="maxParticipants" class="form-label">
+            Nombre maximum de participants *
+          </label>
+          <div class="number-input">
+            <button
+              type="button"
+              class="number-btn minus"
+              (click)="decrementParticipants()"
+              [disabled]="eventForm.get('maxParticipants')?.value <= 1">
+              −
+            </button>
+            <input
+              type="number"
+              id="maxParticipants"
+              formControlName="maxParticipants"
+              class="form-input number"
+              min="1"
+              max="1000"
+              [class.invalid]="maxParticipantsError">
+            <button
+              type="button"
+              class="number-btn plus"
+              (click)="incrementParticipants()"
+              [disabled]="eventForm.get('maxParticipants')?.value >= 1000">
+              +
+            </button>
+          </div>
+
+          <div class="capacity-info">
+            <span class="info-icon">📊</span>
+            <span>Taux de remplissage estimé : 70%</span>
+          </div>
+
+          <div *ngIf="maxParticipantsError" class="error-message">
+            {{ maxParticipantsError }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="price" class="form-label">Prix (€) *</label>
+          <div class="price-input">
+            <input
+              type="number"
+              id="price"
+              formControlName="price"
+              class="form-input"
+              min="0"
+              step="0.01"
+              [class.invalid]="priceError">
+            <span class="currency">€</span>
+          </div>
+
+          <div class="price-info">
+            <span class="info-icon">💰</span>
+            <span>Revenu estimé : {{ formatCurrency(getEstimatedRevenue()) }}</span>
+          </div>
+
+          <div *ngIf="priceError" class="error-message">
+            {{ priceError }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <div class="left-actions">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="btn-cancel"
+          [disabled]="isSubmitting">
+          Annuler
+        </button>
+
+        <button
+          type="button"
+          (click)="resetForm()"
+          class="btn-reset"
+          [disabled]="isSubmitting">
+          Réinitialiser
+        </button>
+      </div>
+
+      <button
+        type="submit"
+        class="btn-create"
+        [disabled]="eventForm.invalid || isSubmitting">
+        <span *ngIf="!isSubmitting" class="create-icon">🚀</span>
+        <span *ngIf="isSubmitting" class="spinner"></span>
+        {{ isSubmitting ? 'Création en cours...' : 'Créer l\'événement' }}
+      </button>
+    </div>
+  </form>
+
+  <!-- Indicateur de progression -->
+  <div *ngIf="isSubmitting" class="progress-overlay">
+    <div class="progress-content">
+      <div class="spinner-large"></div>
+      <p>Création de l'événement en cours...</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,233 @@
+<!-- src/app/components/organizer/manage-events/manage-events.component.html -->
+<div class="manage-events">
+  <!-- En-tête -->
+  <header class="manage-header">
+    <div class="header-content">
+      <h1 class="manage-title">
+        <span class="manage-icon">📋</span>
+        Gérer mes événements
+      </h1>
+      <p class="manage-subtitle">
+        {{ filteredEvents.length }} événement(s) trouvé(s)
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/create-event" class="btn-create">
+        <span class="btn-icon">➕</span>
+        Nouvel événement
+      </a>
+
+      <button (click)="exportToCSV()" class="btn-export" [disabled]="filteredEvents.length === 0">
+        <span class="btn-icon">📤</span>
+        Exporter CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <!-- Recherche -->
+      <div class="filter-group">
+        <label class="filter-label">🔍 Rechercher</label>
+        <input
+          type="text"
+          [(ngModel)]="filters.searchTerm"
+          (ngModelChange)="applyFilters()"
+          placeholder="Titre, description, lieu..."
+          class="search-input">
+      </div>
+
+      <!-- Statut -->
+      <div class="filter-group">
+        <label class="filter-label">📊 Statut</label>
+        <select
+          [(ngModel)]="filters.status"
+          (ngModelChange)="applyFilters()"
+          class="filter-select">
+          <option *ngFor="let status of statusOptions" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Catégorie -->
+      <div class="filter-group">
+        <label class="filter-label">🏷️ Catégorie</label>
+        <select
+          [(ngModel)]="filters.category"
+          (ngModelChange)="applyFilters()"
+          class="filter-select">
+          <option *ngFor="let cat of categories" [value]="cat.value">
+            {{ cat.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Tri -->
+      <div class="filter-group">
+        <label class="filter-label">📈 Trier par</label>
+        <select
+          [(ngModel)]="filters.sortBy"
+          (ngModelChange)="applyFilters()"
+          class="filter-select">
+          <option value="date">Date</option>
+          <option value="title">Titre</option>
+          <option value="participants">Participants</option>
+          <option value="revenue">Revenus</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Actions filtres -->
+    <div class="filter-actions">
+      <button (click)="resetFilters()" class="btn-reset">
+        🔄 Réinitialiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement des événements...</p>
+  </div>
+
+  <!-- Aucun résultat -->
+  <div *ngIf="!isLoading && filteredEvents.length === 0" class="empty-state">
+    <div class="empty-icon">📭</div>
+    <h3>Aucun événement trouvé</h3>
+    <p>Créez votre premier événement ou modifiez vos filtres</p>
+    <a routerLink="/create-event" class="btn-create-empty">
+      ➕ Créer un événement
+    </a>
+  </div>
+
+  <!-- Grille d'événements -->
+  <div *ngIf="!isLoading && filteredEvents.length > 0" class="events-grid">
+    <div *ngFor="let event of getPaginatedEvents()" class="event-card">
+      <!-- En-tête de la carte -->
+      <div class="event-card-header">
+        <div class="event-status" [style.background]="getStatusColor(event)">
+          {{ getStatusLabel(event) }}
+        </div>
+        <div class="event-date">
+          {{ formatEventDate(event.date) }}
+        </div>
+      </div>
+
+      <!-- Contenu -->
+      <div class="event-card-content">
+        <h3 class="event-title">{{ event.title }}</h3>
+
+        <div class="event-meta">
+          <span class="meta-item">
+            <span class="meta-icon">📍</span>
+            {{ event.location }}
+          </span>
+          <span class="meta-item">
+            <span class="meta-icon">{{ getCategoryIcon(event.category) }}</span>
+            {{ getCategoryLabel(event.category) }}
+          </span>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="event-stats">
+          <div class="stat-item">
+            <span class="stat-icon">👥</span>
+            <span class="stat-value">{{ event.currentParticipants }}/{{ event.maxParticipants }}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="getRegistrationRate(event)"></div>
+            </div>
+          </div>
+
+          <div class="stat-item">
+            <span class="stat-icon">💰</span>
+            <span class="stat-value">{{ getRevenue(event) }}€</span>
+            <span class="stat-label">Revenus</span>
+          </div>
+
+          <div class="stat-item" *ngIf="isUpcoming(event)">
+            <span class="stat-icon">⏳</span>
+            <span class="stat-value">{{ getDaysUntil(event) }}j</span>
+            <span class="stat-label">restants</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions CORRIGÉES -->
+      <div class="event-card-actions">
+        <!-- Boutons de statut avec VARIABLES SÉPARÉES -->
+        <div class="status-buttons">
+          <button (click)="changeEventStatus(event, 'published')"
+                  class="status-btn published"
+                  title="Publier"
+                  [disabled]="statusChangingId === event.id"
+                  [class.active]="getStatusLabel(event) === 'Publié'">
+            <span *ngIf="statusChangingId !== event.id">✅</span>
+            <span *ngIf="statusChangingId === event.id" class="spinner-small"></span>
+          </button>
+          <button (click)="changeEventStatus(event, 'draft')"
+                  class="status-btn draft"
+                  title="Mettre en brouillon"
+                  [disabled]="statusChangingId === event.id"
+                  [class.active]="getStatusLabel(event) === 'Brouillon'">
+            <span *ngIf="statusChangingId !== event.id">📝</span>
+            <span *ngIf="statusChangingId === event.id" class="spinner-small"></span>
+          </button>
+          <button (click)="changeEventStatus(event, 'cancelled')"
+                  class="status-btn cancelled"
+                  title="Annuler"
+                  [disabled]="statusChangingId === event.id"
+                  [class.active]="getStatusLabel(event) === 'Annulé'">
+            <span *ngIf="statusChangingId !== event.id">❌</span>
+            <span *ngIf="statusChangingId === event.id" class="spinner-small"></span>
+          </button>
+        </div>
+
+        <!-- Bouton suppression avec VARIABLE SÉPARÉE -->
+        <button
+          (click)="deleteEvent(event)"
+          class="delete-btn"
+          [disabled]="deletingId === event.id"
+          title="Supprimer">
+          <span *ngIf="deletingId !== event.id">🗑️ Supprimer</span>
+          <span *ngIf="deletingId === event.id" class="spinner-small">Suppression...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="filteredEvents.length > 0" class="pagination">
+    <button
+      (click)="previousPage()"
+      [disabled]="currentPage === 1"
+      class="page-btn prev">
+      ← Précédent
+    </button>
+
+    <div class="page-numbers">
+      <span class="page-info">
+        Page {{ currentPage }} sur {{ totalPages }}
+        ({{ filteredEvents.length }} événements)
+      </span>
+      <div class="page-dots">
+        <span
+          *ngFor="let page of [].constructor(totalPages); let i = index"
+          (click)="goToPage(i + 1)"
+          class="page-dot"
+          [class.active]="currentPage === i + 1">
+        </span>
+      </div>
+    </div>
+
+    <button
+      (click)="nextPage()"
+      [disabled]="currentPage === totalPages"
+      class="page-btn next">
+      Suivant →
+    </button>
+  </div>
+</div>

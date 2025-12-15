@@ -1,4 +1,3 @@
-// src/app/models/event.model.ts
 export interface Event {
   id: number;
   title: string;
@@ -9,15 +8,46 @@ export interface Event {
   mediaUrls?: string[];
   maxParticipants: number;
   organizerId: number;
-  currentParticipants: number;
-  price: number; // ← DOIT EXISTER
-  status?: string; // ← RECOMMANDÉ
-  createdAt?: string; // ← RECOMMANDÉ
+  currentParticipants: number; // ← Déjà présent
+  price: number; // ← Déjà présent
+  status?: string; // "ACTIVE", "INACTIVE", "CANCELLED"
+  createdAt?: string;
+  updatedAt?: string;
   isActive?: boolean;
+  availablePlaces?: number; // ← AJOUTER
+  imageUrl?: string; // ← AJOUTER
 }
 
 export interface EventFilters {
   keyword?: string;
   category?: string;
   location?: string;
+  minDate?: string;
+  maxDate?: string;
+  maxPrice?: number;
+}
+
+export interface CreateEventDTO {
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  date: string;
+  price: number;
+  maxParticipants: number;
+  imageUrl?: string;
+  mediaUrls?: string[];
+}
+
+export interface UpdateEventDTO {
+  title?: string;
+  description?: string;
+  category?: string;
+  location?: string;
+  date?: string;
+  price?: number;
+  maxParticipants?: number;
+  imageUrl?: string;
+  mediaUrls?: string[];
+  isActive?: boolean;
 }

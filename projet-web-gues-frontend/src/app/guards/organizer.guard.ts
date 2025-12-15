@@ -13,15 +13,25 @@ export class OrganizerGuard {
   ) {}
 
   canActivate(): boolean {
-    const user = this.authService.getCurrentUser();
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return false;
+    }
 
-    // VERSION SIMPLE POUR LE DEV
-    if (user && user.role === 'ORGANIZER') {
+    // Si c'est un organisateur, autoriser l'accès
+    if (this.authService.isOrganizer()) {
       return true;
     }
 
-    // Rediriger vers la page événements pour participants
-    this.router.navigate(['/events']);
+    // Si c'est un participant, rediriger vers events (mais events est protégé)
+    // Donc rediriger vers la page d'accueil
+    if (this.authService.isParticipant()) {
+      this.router.navigate(['/']); // La page d'accueil redirigera
+      return false;
+    }
+
+    // Sinon, rediriger vers login
+    this.router.navigate(['/login']);
     return false;
   }
 }

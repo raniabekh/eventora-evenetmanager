@@ -2,10 +2,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrganizerService, OrganizerStats } from '../../../services/organizer.service';
-import { EventService } from '../../../services/event.service';
+import { OrganizerService, OrganizerStats, OrganizerEvent } from '../../../services/organizer.service';
 import { AuthService } from '../../../services/auth.service';
-import { Event } from '../../../models/event.model';
 
 @Component({
   selector: 'app-organizer-dashboard',
@@ -15,60 +13,62 @@ import { Event } from '../../../models/event.model';
   styleUrls: ['./organizer-dashboard.component.css']
 })
 export class OrganizerDashboardComponent implements OnInit {
-  // Données
   stats: OrganizerStats | null = null;
-  upcomingEvents: Event[] = [];
-  user: any;
+  upcomingEvents: OrganizerEvent[] = [];
+  recentRegistrations: any[] = [];
 
-  // États
-  isLoading = false;
-
-  // Actions rapides
-  quickActions = [
-    { icon: '➕', title: 'Créer événement', route: '/organizer/events/create', color: '#10B981' },
-    { icon: '📋', title: 'Gérer événements', route: '/organizer/events', color: '#3B82F6' },
-    { icon: '👥', title: 'Participants', route: '/organizer/events/1/participants', color: '#8B5CF6' },
-    { icon: '📊', title: 'Statistiques', route: '/organizer/analytics', color: '#F59E0B' }
-  ];
-
-  // Activités récentes
-  recentActivities = [
-    { type: 'registration', title: 'Nouvelle inscription', description: 'Jean Dupont à "Conférence Tech"', time: '30 min' },
-    { type: 'event', title: 'Événement publié', description: 'Atelier Angular publié', time: '2h' },
-    { type: 'message', title: 'Message reçu', description: 'Question sur la date', time: '5h' },
-    { type: 'update', title: 'Événement modifié', description: 'Formation React mise à jour', time: '1j' }
-  ];
+  loading = true;
+  error = '';
 
   constructor(
     private organizerService: OrganizerService,
-    private eventService: EventService,
     private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
-    this.user = this.authService.getCurrentUser();
   }
 
   loadDashboardData(): void {
-    this.isLoading = true;
+    this.loading = true;
+
+    const organizerId = this.authService.getUserId();
+    if (!organizerId) {
+      this.error = 'Organisateur non identifié';
+      this.loading = false;
+      return;
+    }
 
     // Charger les statistiques
-    this.organizerService.stats$.subscribe(stats => {
-      this.stats = stats;
-      this.isLoading = false;
+    this.organizerService.getOrganizerStats(organizerId).subscribe({
+      next: (stats) => {
+        this.stats = stats;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error loading stats:', err);
+        this.stats = this.organizerService.getMockOrganizerStats();
+        this.loading = false;
+      }
     });
 
     // Charger les événements à venir
-    this.eventService.getEvents().subscribe(events => {
-      this.upcomingEvents = events.slice(0, 3); // 3 premiers
+    this.organizerService.getOrganizerEvents(organizerId).subscribe({
+      next: (events) => {
+        this.upcomingEvents = events
+          .filter(event => new Date(event.date) > new Date())
+          .slice(0, 3);
+      },
+      error: (err) => {
+        console.error('Error loading events:', err);
+        this.upcomingEvents = this.organizerService.getMockOrganizerEvents()
+          .filter(event => new Date(event.date) > new Date())
+          .slice(0, 3);
+      }
     });
   }
 
-  refreshStats(): void {
-    this.organizerService.refreshStats();
-  }
-
+  // Utilitaires
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -77,7 +77,34 @@ export class OrganizerDashboardComponent implements OnInit {
     }).format(amount);
   }
 
-  getAttendancePercentage(event: Event): number {
-    return Math.round((event.currentParticipants / event.maxParticipants) * 100);
+  formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  getEventStatus(event: OrganizerEvent): string {
+    const now = new Date();
+    const eventDate = new Date(event.date);
+
+    if (eventDate < now) {
+      return 'Terminé';
+    } else if (event.attendanceRate >= 90) {
+      return 'Presque complet';
+    } else {
+      return 'À venir';
+    }
+  }
+
+  getStatusColor(status: string): string {
+    switch (status) {
+      case 'Terminé': return '#6B7280';
+      case 'Presque complet': return '#EF4444';
+      case 'À venir': return '#10B981';
+      default: return '#6B7280';
+    }
   }
 }
