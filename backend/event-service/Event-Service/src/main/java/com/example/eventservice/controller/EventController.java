@@ -1,56 +1,116 @@
-// EventController.java - AJOUTER CES MÉTHODES
-@GetMapping("/organizer/{organizerId}")
-public ResponseEntity<List<Event>> getEventsByOrganizer(
-        @PathVariable Long organizerId,
-        @RequestHeader("X-User-Id") Long userId,
-        @RequestHeader("X-User-Role") String userRole) {
+package com.example.eventservice.controller;
 
-    if (!organizerId.equals(userId) && !"ADMIN".equals(userRole)) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+import com.example.eventservice.model.Event;
+import com.example.eventservice.service.EventService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+@RestController
+@RequestMapping("/api/events")
+@CrossOrigin(origins = "*")
+public class EventController {
+
+    private final EventService eventService;
+
+    public EventController(EventService eventService) {
+        this.eventService = eventService;
     }
 
-    List<Event> events = eventService.getEventsByOrganizer(organizerId);
-    return ResponseEntity.ok(events);
-}
+    @GetMapping
+    public ResponseEntity<List<Event>> getEvents(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String location) {
+        List<Event> events = eventService.searchEvents(keyword, category, location);
+        return ResponseEntity.ok(events);
+    }
 
-@GetMapping("/organizer/{organizerId}/stats")
-public ResponseEntity<Map<String, Object>> getOrganizerStats(@PathVariable Long organizerId) {
-    List<Event> events = eventService.getEventsByOrganizer(organizerId);
+    @GetMapping("/{id}")
+    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
+        return eventService.getEventById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-    long totalEvents = events.size();
-    long upcomingEvents = events.stream()
-            .filter(e -> e.getDate().isAfter(LocalDateTime.now()))
-            .count();
-    long pastEvents = totalEvents - upcomingEvents;
+    @GetMapping("/organizer/{organizerId}")
+    public ResponseEntity<List<Event>> getEventsByOrganizer(
+            @PathVariable Long organizerId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
 
-    int totalParticipants = events.stream()
-            .mapToInt(e -> e.getCurrentParticipants() != null ? e.getCurrentParticipants() : 0)
-            .sum();
+        if (userId != null && !organizerId.equals(userId) && !"ADMIN".equals(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
-    double totalRevenue = events.stream()
-            .mapToDouble(e -> {
-                int participants = e.getCurrentParticipants() != null ? e.getCurrentParticipants() : 0;
-                double price = e.getPrice() != null ? e.getPrice() : 0.0;
-                return participants * price;
-            })
-            .sum();
+        List<Event> events = eventService.getEventsByOrganizer(organizerId);
+        return ResponseEntity.ok(events);
+    }
 
-    double averageAttendance = events.stream()
-            .filter(e -> e.getMaxParticipants() > 0)
-            .mapToDouble(e -> {
-                int participants = e.getCurrentParticipants() != null ? e.getCurrentParticipants() : 0;
-                return (double) participants / e.getMaxParticipants() * 100;
-            })
-            .average()
-            .orElse(0.0);
+    @GetMapping("/organizer/{organizerId}/stats")
+    public ResponseEntity<Map<String, Object>> getOrganizerStats(@PathVariable Long organizerId) {
+        List<Event> events = eventService.getEventsByOrganizer(organizerId);
 
-    Map<String, Object> stats = new HashMap<>();
-    stats.put("totalEvents", totalEvents);
-    stats.put("upcomingEvents", upcomingEvents);
-    stats.put("pastEvents", pastEvents);
-    stats.put("totalParticipants", totalParticipants);
-    stats.put("totalRevenue", totalRevenue);
-    stats.put("averageAttendance", Math.round(averageAttendance));
+        long totalEvents = events.size();
+        long upcomingEvents = events.stream()
+                .filter(e -> e.getDate() != null && e.getDate().isAfter(LocalDateTime.now()))
+                .count();
+        long pastEvents = totalEvents - upcomingEvents;
 
-    return ResponseEntity.ok(stats);
+        int totalParticipants = events.stream()
+                .mapToInt(this::safeMaxParticipants)
+                .sum();
+
+        double averageAttendance = events.stream()
+                .filter(e -> Objects.nonNull(e.getMaxParticipants()) && e.getMaxParticipants() > 0)
+                .mapToDouble(e -> (double) safeMaxParticipants(e) / e.getMaxParticipants() * 100)
+                .average()
+                .orElse(0.0);
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalEvents", totalEvents);
+        stats.put("upcomingEvents", upcomingEvents);
+        stats.put("pastEvents", pastEvents);
+        stats.put("totalParticipants", totalParticipants);
+        stats.put("averageAttendance", Math.round(averageAttendance));
+
+        return ResponseEntity.ok(stats);
+    }
+
+    private int safeMaxParticipants(Event event) {
+        return event.getMaxParticipants() != null ? event.getMaxParticipants() : 0;
+    }
+
+    @PostMapping
+    public ResponseEntity<Event> createEvent(
+            @RequestBody Event event,
+            @RequestHeader(value = "X-User-Id", required = false) Long organizerId) {
+        if (organizerId != null) {
+            event.setOrganizerId(organizerId);
+        }
+        Event saved = eventService.createEvent(event);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Event eventDetails) {
+        try {
+            Event updated = eventService.updateEvent(id, eventDetails);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
+        eventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
+    }
 }

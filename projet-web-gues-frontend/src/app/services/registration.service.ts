@@ -4,6 +4,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 // ========== INTERFACES EXPORTÉES ==========
 export interface Registration {
@@ -17,6 +18,10 @@ export interface Registration {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'WAITING_LIST';
   notes?: string;
   qrCodeUrl?: string;
+  eventTitle?: string;
+  eventDate?: string;
+  eventLocation?: string;
+  eventCategory?: string;
 }
 
 export interface RegistrationRequest {
@@ -47,7 +52,7 @@ export interface EventStats {
 })
 export class RegistrationService {
   // URL via API Gateway
-  private baseUrl = 'http://localhost:8080/api/registrations';
+  private baseUrl = `${environment.apiBaseUrl}/registrations`;
 
   constructor(
     private http: HttpClient,

@@ -2,7 +2,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrganizerService, OrganizerStats, OrganizerEvent } from '../../../services/organizer.service';
+import { OrganizerService, OrganizerStats, OrganizerEvent, OrganizerActivity } from '../../../services/organizer.service';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
@@ -13,9 +13,16 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./organizer-dashboard.component.css']
 })
 export class OrganizerDashboardComponent implements OnInit {
+  user: any = null;
   stats: OrganizerStats | null = null;
   upcomingEvents: OrganizerEvent[] = [];
-  recentRegistrations: any[] = [];
+  recentActivities: OrganizerActivity[] = [];
+
+  quickActions = [
+    { title: 'Créer un événement', route: '/organizer/events/create', icon: '➕', color: '#3B82F6' },
+    { title: 'Gérer mes événements', route: '/organizer/manage-events', icon: '🗂️', color: '#10B981' },
+    { title: 'Voir les inscriptions', route: '/registrations/my', icon: '👥', color: '#F59E0B' }
+  ];
 
   loading = true;
   error = '';
@@ -26,6 +33,7 @@ export class OrganizerDashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.user = this.authService.getCurrentUser();
     this.loadDashboardData();
   }
 
@@ -66,6 +74,12 @@ export class OrganizerDashboardComponent implements OnInit {
           .slice(0, 3);
       }
     });
+
+    this.recentActivities = this.organizerService.getRecentActivities();
+  }
+
+  refreshStats(): void {
+    this.loadDashboardData();
   }
 
   // Utilitaires
@@ -106,5 +120,11 @@ export class OrganizerDashboardComponent implements OnInit {
       case 'À venir': return '#10B981';
       default: return '#6B7280';
     }
+  }
+
+  getAttendancePercentage(event: OrganizerEvent): number {
+    if (!event.maxParticipants) return 0;
+    const percentage = Math.round(((event.currentParticipants || 0) / event.maxParticipants) * 100);
+    return Math.min(100, Math.max(0, percentage));
   }
 }

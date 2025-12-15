@@ -3,13 +3,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
   // URL de votre API Gateway Spring Cloud
-  private gatewayUrl = 'http://localhost:8080';
+  private gatewayUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) { }
 

@@ -16,6 +16,15 @@ public class Registration {
     @Column(nullable = false)
     private Long userId;
 
+    private String participantName;
+
+    private String participantEmail;
+
+    private String participantPhone;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
     @Column(nullable = false)
     private LocalDateTime registrationDate;
 
@@ -41,6 +50,14 @@ public class Registration {
     public void setEventId(Long eventId) { this.eventId = eventId; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+    public String getParticipantName() { return participantName; }
+    public void setParticipantName(String participantName) { this.participantName = participantName; }
+    public String getParticipantEmail() { return participantEmail; }
+    public void setParticipantEmail(String participantEmail) { this.participantEmail = participantEmail; }
+    public String getParticipantPhone() { return participantPhone; }
+    public void setParticipantPhone(String participantPhone) { this.participantPhone = participantPhone; }
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
     public LocalDateTime getRegistrationDate() { return registrationDate; }
     public void setRegistrationDate(LocalDateTime registrationDate) { this.registrationDate = registrationDate; }
     public String getStatus() { return status; }
