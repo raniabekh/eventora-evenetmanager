@@ -15,6 +15,8 @@ export interface OrganizerStats {
   totalParticipants: number;
   totalRevenue: number;
   averageAttendance: number;
+  ongoingEvents?: number;
+  registrationTrend?: number;
 }
 
 export interface OrganizerEvent extends Event {
@@ -23,11 +25,93 @@ export interface OrganizerEvent extends Event {
   attendanceRate: number;
 }
 
+export type OrganizerNotificationType =
+  | 'NEW_REGISTRATION'
+  | 'REGISTRATION_CANCELLED'
+  | 'PARTICIPANT_QUESTION'
+  | 'FEEDBACK_RECEIVED'
+  | 'EVENT_REMINDER_ORGANIZER'
+  | 'EVENT_ANALYTICS_READY'
+  | 'CUSTOM_NOTIFICATION';
+
+export interface OrganizerNotification {
+  id: number;
+  title: string;
+  message: string;
+  type: OrganizerNotificationType;
+  createdAt: string;
+  isRead: boolean;
+  eventId?: number;
+  eventTitle?: string;
+  participantName?: string;
+  data?: any;
+  priority?: 'high' | 'medium' | 'low';
+}
+
+export interface OrganizerNotificationStats {
+  total: number;
+  unread: number;
+  read: number;
+}
+
+export interface OrganizerActivity {
+  type: 'creation' | 'update' | 'cancellation' | 'registration' | 'message' | 'event';
+  title: string;
+  description: string;
+  timestamp: string;
+  eventId?: number;
+  time?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class OrganizerService {
   private baseUrl = environment.apiBaseUrl;
+
+  // État local pour les notifications/activités (mock côté front)
+  private organizerNotifications: OrganizerNotification[] = [
+    {
+      id: 1,
+      title: 'Nouvelle inscription',
+      message: 'Alice Dupont s\'est inscrite à votre conférence',
+      type: 'NEW_REGISTRATION',
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      eventTitle: 'Conférence Tech 2024',
+      priority: 'high',
+      data: { participant: 'Alice Dupont' }
+    },
+    {
+      id: 2,
+      title: 'Question participant',
+      message: 'Une question a été posée sur l\'événement "Atelier Angular"',
+      type: 'PARTICIPANT_QUESTION',
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      isRead: true,
+      eventTitle: 'Atelier Angular',
+      priority: 'medium'
+    }
+  ];
+
+  private recentActivities: OrganizerActivity[] = [
+    {
+      type: 'event',
+      title: 'Nouvel événement créé',
+      description: 'Conférence Tech 2024 a été créée',
+      timestamp: new Date().toISOString(),
+      eventId: 1,
+      time: 'Il y a quelques minutes'
+    },
+    {
+      type: 'registration',
+      title: 'Nouvelle inscription',
+      description: '3 nouvelles inscriptions reçues',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      eventId: 2,
+      time: 'Il y a 2 heures'
+    }
+  ];
 
   constructor(
     private http: HttpClient,
@@ -41,6 +125,11 @@ export class OrganizerService {
       `${this.baseUrl}/events/organizer/${organizerId}/stats`,
       { headers: this.getAuthHeaders() }
     ).pipe(
+      map(stats => ({
+        registrationTrend: 0,
+        ongoingEvents: 0,
+        ...stats
+      })),
       catchError(() => {
         // Retourner des stats par défaut en cas d'erreur
         return of({
@@ -49,7 +138,9 @@ export class OrganizerService {
           pastEvents: 0,
           totalParticipants: 0,
           totalRevenue: 0,
-          averageAttendance: 0
+          averageAttendance: 0,
+          ongoingEvents: 0,
+          registrationTrend: 0
         });
       })
     );
@@ -146,7 +237,9 @@ export class OrganizerService {
       pastEvents: 3,
       totalParticipants: 245,
       totalRevenue: 5250,
-      averageAttendance: 78
+      averageAttendance: 78,
+      ongoingEvents: 1,
+      registrationTrend: 12
     };
   }
 
@@ -187,5 +280,73 @@ export class OrganizerService {
         attendanceRate: 80
       }
     ];
+  }
+
+  // ========== NOTIFICATIONS ORGANISATEUR (MOCK) ==========
+
+  getUnreadNotificationsCount(): Observable<number> {
+    const count = this.organizerNotifications.filter(n => !n.isRead).length;
+    return of(count);
+  }
+
+  getOrganizerNotifications(): Observable<OrganizerNotification[]> {
+    return of([...this.organizerNotifications]);
+  }
+
+  getNotificationStats(): Observable<OrganizerNotificationStats> {
+    const total = this.organizerNotifications.length;
+    const unread = this.organizerNotifications.filter(n => !n.isRead).length;
+    const read = total - unread;
+    return of({ total, unread, read });
+  }
+
+  markNotificationAsRead(id: number): void {
+    this.organizerNotifications = this.organizerNotifications.map(n =>
+      n.id === id ? { ...n, isRead: true } : n
+    );
+  }
+
+  markAllNotificationsAsRead(): void {
+    this.organizerNotifications = this.organizerNotifications.map(n => ({
+      ...n,
+      isRead: true
+    }));
+  }
+
+  deleteNotification(id: number): void {
+    this.organizerNotifications = this.organizerNotifications.filter(n => n.id !== id);
+  }
+
+  clearAllNotifications(): void {
+    this.organizerNotifications = [];
+  }
+
+  simulateOrganizerNotification(type: OrganizerNotificationType): void {
+    const newNotification: OrganizerNotification = {
+      id: Date.now(),
+      title: 'Notification simulateur',
+      message: `Nouvelle notification de type ${type}`,
+      type,
+      createdAt: new Date().toISOString(),
+      isRead: false
+    };
+
+    this.organizerNotifications = [newNotification, ...this.organizerNotifications];
+  }
+
+  simulateMultipleNotifications(count: number): void {
+    for (let i = 0; i < count; i++) {
+      this.simulateOrganizerNotification('CUSTOM_NOTIFICATION');
+    }
+  }
+
+  // ========== ACTIVITÉS ==========
+
+  addActivity(activity: OrganizerActivity): void {
+    this.recentActivities = [{ ...activity }, ...this.recentActivities].slice(0, 20);
+  }
+
+  getRecentActivities(): OrganizerActivity[] {
+    return [...this.recentActivities];
   }
 }

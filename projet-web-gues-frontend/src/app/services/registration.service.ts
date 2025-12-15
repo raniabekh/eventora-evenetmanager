@@ -18,6 +18,10 @@ export interface Registration {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'WAITING_LIST';
   notes?: string;
   qrCodeUrl?: string;
+  eventTitle?: string;
+  eventDate?: string;
+  eventLocation?: string;
+  eventCategory?: string;
 }
 
 export interface RegistrationRequest {
