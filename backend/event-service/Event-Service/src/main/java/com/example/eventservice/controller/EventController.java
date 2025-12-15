@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/events")
@@ -58,28 +59,17 @@ public class EventController {
 
         long totalEvents = events.size();
         long upcomingEvents = events.stream()
-                .filter(e -> e.getDate().isAfter(LocalDateTime.now()))
+                .filter(e -> e.getDate() != null && e.getDate().isAfter(LocalDateTime.now()))
                 .count();
         long pastEvents = totalEvents - upcomingEvents;
 
         int totalParticipants = events.stream()
-                .mapToInt(e -> e.getMaxParticipants() != null ? e.getMaxParticipants() : 0)
-                .sum();
-
-        double totalRevenue = events.stream()
-                .mapToDouble(e -> {
-                    int participants = e.getMaxParticipants() != null ? e.getMaxParticipants() : 0;
-                    double price = 0.0;
-                    return participants * price;
-                })
+                .mapToInt(this::safeMaxParticipants)
                 .sum();
 
         double averageAttendance = events.stream()
-                .filter(e -> e.getMaxParticipants() != null && e.getMaxParticipants() > 0)
-                .mapToDouble(e -> {
-                    int participants = e.getMaxParticipants() != null ? e.getMaxParticipants() : 0;
-                    return (double) participants / e.getMaxParticipants() * 100;
-                })
+                .filter(e -> Objects.nonNull(e.getMaxParticipants()) && e.getMaxParticipants() > 0)
+                .mapToDouble(e -> (double) safeMaxParticipants(e) / e.getMaxParticipants() * 100)
                 .average()
                 .orElse(0.0);
 
@@ -88,10 +78,13 @@ public class EventController {
         stats.put("upcomingEvents", upcomingEvents);
         stats.put("pastEvents", pastEvents);
         stats.put("totalParticipants", totalParticipants);
-        stats.put("totalRevenue", totalRevenue);
         stats.put("averageAttendance", Math.round(averageAttendance));
 
         return ResponseEntity.ok(stats);
+    }
+
+    private int safeMaxParticipants(Event event) {
+        return event.getMaxParticipants() != null ? event.getMaxParticipants() : 0;
     }
 
     @PostMapping
