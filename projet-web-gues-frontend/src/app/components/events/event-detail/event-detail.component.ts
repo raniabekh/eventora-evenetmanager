@@ -80,7 +80,7 @@ export class EventDetailComponent implements OnInit {
     const userId = this.authService.getUserId();
     if (!userId) return;
 
-    this.registrationService.getUserRegistrations(userId)
+    this.registrationService.getUserRegistrations()
       .subscribe({
         next: (registrations) => {
           const registration = registrations.find(reg => reg.eventId === this.eventId);

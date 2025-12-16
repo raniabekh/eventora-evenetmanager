@@ -197,7 +197,7 @@ export class ManageEventsComponent implements OnInit {
         this.deletingId = null;  // Réinitialisez deletingId
 
         this.organizerService.addActivity({
-          type: 'cancellation',
+          type: 'update',
           title: 'Événement supprimé',
           description: `Vous avez supprimé "${event.title}"`,
           timestamp: new Date().toISOString(),

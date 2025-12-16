@@ -2,20 +2,25 @@ export interface Event {
   id: number;
   title: string;
   description: string;
-  date: string;  // Format ISO: "2024-12-15T09:00:00"
+  date: string;  // ISO: "2024-12-15T09:00:00"
   location: string;
-  category: string;  // "CONFERENCE", "FORMATION", "CONCERT", etc.
+  category: string;
+
   mediaUrls?: string[];
+  imageUrl?: string;          // ✅ ajouté
+
   maxParticipants: number;
   organizerId: number;
-  currentParticipants: number; // ← Déjà présent
-  price: number; // ← Déjà présent
-  status?: string; // "ACTIVE", "INACTIVE", "CANCELLED"
+
+  currentParticipants: number; // ✅ important
+  availablePlaces?: number;    // ✅ optionnel (calculable côté front)
+
+  price: number;
+
+  status?: string; // "PUBLISHED" | "DRAFT" | "CANCELLED" | "COMPLETED"
   createdAt?: string;
   updatedAt?: string;
   isActive?: boolean;
-  availablePlaces?: number; // ← AJOUTER
-  imageUrl?: string; // ← AJOUTER
 }
 
 export interface EventFilters {
@@ -50,4 +55,6 @@ export interface UpdateEventDTO {
   imageUrl?: string;
   mediaUrls?: string[];
   isActive?: boolean;
+  status?: string;
 }
+

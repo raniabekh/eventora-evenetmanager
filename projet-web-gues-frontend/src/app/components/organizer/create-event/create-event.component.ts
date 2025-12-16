@@ -1,210 +1,213 @@
-// src/app/components/organizer/create-event/create-event.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { OrganizerService } from '../../../services/organizer.service';
 import { EventService } from '../../../services/event.service';
-import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-create-event',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './create-event.component.html',
   styleUrls: ['./create-event.component.css']
 })
 export class CreateEventComponent implements OnInit {
-  // Mode édition ou création
+
+  eventForm!: FormGroup;
   isEditMode = false;
-  eventId: number | null = null;
+  eventId?: number;
 
-  // Données événement
-  eventData = {
-    title: '',
-    description: '',
-    category: 'CONFERENCE',
-    date: '',
-    time: '09:00',
-    location: '',
-    maxParticipants: 50,
-    price: 0,
-    imageUrl: '',
-    isActive: true
-  };
+  isSubmitting = false;
+  hasError = false;
+  errorMessage = '';
 
-  // Catégories
   categories = [
-    { value: 'CONFERENCE', label: 'Conférence' },
-    { value: 'FORMATION', label: 'Formation' },
-    { value: 'CONCERT', label: 'Concert' },
-    { value: 'SPORT', label: 'Sport' },
-    { value: 'NETWORKING', label: 'Networking' },
-    { value: 'WORKSHOP', label: 'Atelier' }
+    { value: 'CONFERENCE', label: 'Conférence', icon: '🎤' },
+    { value: 'FORMATION', label: 'Formation', icon: '🎓' },
+    { value: 'CONCERT', label: 'Concert', icon: '🎵' },
+    { value: 'SPORT', label: 'Sport', icon: '⚽' },
+    { value: 'NETWORKING', label: 'Networking', icon: '🤝' },
+    { value: 'WORKSHOP', label: 'Atelier', icon: '🛠️' }
   ];
 
-  // États
-  loading = false;
-  submitting = false;
-  error = '';
-
   constructor(
+    private fb: FormBuilder,
     private organizerService: OrganizerService,
     private eventService: EventService,
-    private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    // Vérifier si on est en mode édition
+    this.eventForm = this.fb.group({
+      title: ['', [Validators.required, Validators.minLength(3)]],
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      category: ['', Validators.required],
+      date: ['', Validators.required],
+      time: ['09:00', Validators.required],
+      location: ['', Validators.required],
+      maxParticipants: [50, [Validators.required, Validators.min(1)]],
+      price: [0, [Validators.required, Validators.min(0)]],
+      imageUrl: [''],
+      isActive: [true]
+    });
+
     const id = this.route.snapshot.params['id'];
     if (id) {
       this.isEditMode = true;
       this.eventId = +id;
-      this.loadEventData();
+      this.loadEvent();
     }
-
-    // Initialiser la date par défaut (demain)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    this.eventData.date = tomorrow.toISOString().split('T')[0];
   }
 
-  loadEventData(): void {
-    if (!this.eventId) return;
+  loadEvent(): void {
+    this.eventService.getEventById(this.eventId!).subscribe(event => {
+      if (!event) return;
 
-    this.loading = true;
-    this.eventService.getEventById(this.eventId).subscribe({
-      next: (event) => {
-        if (event) {
-          // Remplir le formulaire
-          this.eventData.title = event.title;
-          this.eventData.description = event.description || '';
-          this.eventData.category = event.category;
-          this.eventData.date = event.date.split('T')[0];
-          this.eventData.time = event.date.split('T')[1].substring(0, 5);
-          this.eventData.location = event.location;
-          this.eventData.maxParticipants = event.maxParticipants;
-          this.eventData.price = event.price || 0;
-          this.eventData.imageUrl = event.imageUrl || '';
-          this.eventData.isActive = event.isActive !== false;
-        }
-        this.loading = false;
+      const [date, time] = event.date.split('T');
+
+      this.eventForm.patchValue({
+        title: event.title,
+        description: event.description,
+        category: event.category,
+        date,
+        time: time.substring(0, 5),
+        location: event.location,
+        maxParticipants: event.maxParticipants,
+        price: event.price,
+        imageUrl: event.imageUrl,
+        isActive: event.isActive
+      });
+    });
+  }
+
+  submitEvent(): void {
+    if (this.eventForm.invalid) return;
+
+    this.isSubmitting = true;
+    this.hasError = false;
+
+    const form = this.eventForm.value;
+    const dateTime = new Date(`${form.date}T${form.time}:00`).toISOString();
+
+    const payload = {
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      location: form.location,
+      date: dateTime,
+      maxParticipants: form.maxParticipants,
+      price: form.price,
+      imageUrl: form.imageUrl,
+      isActive: form.isActive
+    };
+
+    const request$ = this.isEditMode
+      ? this.organizerService.updateEvent(this.eventId!, payload)
+      : this.organizerService.createEvent(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.router.navigate(['/organizer/dashboard']);
       },
-      error: (err) => {
-        console.error('Error loading event:', err);
-        this.error = 'Impossible de charger l\'événement';
-        this.loading = false;
+      error: err => {
+        this.isSubmitting = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message || 'Erreur serveur';
       }
     });
   }
 
-  // Validation
-  validateForm(): boolean {
-    if (!this.eventData.title.trim()) {
-      this.error = 'Le titre est requis';
-      return false;
-    }
-
-    if (!this.eventData.date) {
-      this.error = 'La date est requise';
-      return false;
-    }
-
-    if (!this.eventData.location.trim()) {
-      this.error = 'Le lieu est requis';
-      return false;
-    }
-
-    if (this.eventData.maxParticipants < 1) {
-      this.error = 'Le nombre de participants doit être positif';
-      return false;
-    }
-
-    if (this.eventData.price < 0) {
-      this.error = 'Le prix ne peut pas être négatif';
-      return false;
-    }
-
-    return true;
+  cancel(): void {
+    this.router.navigate(['/organizer/dashboard']);
   }
 
-  // Soumission
-  onSubmit(): void {
-    if (!this.validateForm()) {
-      return;
-    }
-
-    this.submitting = true;
-
-    // Préparer les données
-    const eventDate = new Date(`${this.eventData.date}T${this.eventData.time}:00`);
-
-    const eventToSubmit = {
-      title: this.eventData.title,
-      description: this.eventData.description,
-      category: this.eventData.category,
-      date: eventDate.toISOString(),
-      location: this.eventData.location,
-      maxParticipants: this.eventData.maxParticipants,
-      price: this.eventData.price,
-      imageUrl: this.eventData.imageUrl || undefined,
-      isActive: this.eventData.isActive
-    };
-
-    if (this.isEditMode && this.eventId) {
-      // Mise à jour
-      this.organizerService.updateEvent(this.eventId, eventToSubmit).subscribe({
-        next: () => {
-          this.submitting = false;
-          alert('✅ Événement mis à jour avec succès');
-          this.router.navigate(['/organizer/dashboard']);
-        },
-        error: (err) => {
-          this.submitting = false;
-          this.error = err.error?.message || 'Erreur lors de la mise à jour';
-        }
-      });
-    } else {
-      // Création
-      this.organizerService.createEvent(eventToSubmit).subscribe({
-        next: () => {
-          this.submitting = false;
-          alert('✅ Événement créé avec succès');
-          this.router.navigate(['/organizer/dashboard']);
-        },
-        error: (err) => {
-          this.submitting = false;
-          this.error = err.error?.message || 'Erreur lors de la création';
-        }
-      });
-    }
+  resetForm(): void {
+    this.eventForm.reset({
+      maxParticipants: 50,
+      price: 0,
+      time: '09:00',
+      isActive: true
+    });
   }
 
-  // Annulation
-  onCancel(): void {
-    if (confirm('Êtes-vous sûr de vouloir annuler ? Les modifications seront perdues.')) {
-      this.router.navigate(['/organizer/dashboard']);
-    }
+  isPastDate(): boolean {
+    const date = this.eventForm.get('date')?.value;
+    return date ? new Date(date) < new Date() : false;
   }
 
-  // Utilitaires
+  getEstimatedRevenue(): number {
+    return this.eventForm.value.maxParticipants * this.eventForm.value.price * 0.7;
+  }
+
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value);
+  }
+
   get today(): string {
     return new Date().toISOString().split('T')[0];
   }
 
-  get estimatedRevenue(): number {
-    const attendanceRate = 0.7; // 70% de remplissage estimé
-    const estimatedParticipants = Math.floor(this.eventData.maxParticipants * attendanceRate);
-    return estimatedParticipants * this.eventData.price;
+  // === ERREURS POUR LE TEMPLATE ===
+  get titleError() {
+    const c = this.eventForm.get('title');
+    return c?.touched && c.invalid ? 'Titre requis (min 3 caractères)' : null;
   }
 
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0
-    }).format(amount);
+  get descriptionError() {
+    const c = this.eventForm.get('description');
+    return c?.touched && c.invalid ? 'Description trop courte' : null;
   }
+
+  get dateError() {
+    const c = this.eventForm.get('date');
+    return c?.touched && c.invalid ? 'Date requise' : null;
+  }
+
+  get locationError() {
+    const c = this.eventForm.get('location');
+    return c?.touched && c.invalid ? 'Lieu requis' : null;
+  }
+
+  get maxParticipantsError() {
+    const c = this.eventForm.get('maxParticipants');
+    return c?.touched && c.invalid ? 'Valeur invalide' : null;
+  }
+
+  get priceError() {
+    const c = this.eventForm.get('price');
+    return c?.touched && c.invalid ? 'Prix invalide' : null;
+  }
+
+  get selectedCategory() {
+    return this.categories.find(c => c.value === this.eventForm.value.category);
+  }
+
+  // ➖ Diminuer le nombre de participants
+  decrementParticipants(): void {
+    const control = this.eventForm.get('maxParticipants');
+    if (!control) return;
+
+    const value = control.value || 1;
+    if (value > 1) {
+      control.setValue(value - 1);
+    }
+  }
+
+// ➕ Augmenter le nombre de participants
+  incrementParticipants(): void {
+    const control = this.eventForm.get('maxParticipants');
+    if (!control) return;
+
+    const value = control.value || 1;
+    if (value < 1000) {
+      control.setValue(value + 1);
+    }
+  }
+
 }

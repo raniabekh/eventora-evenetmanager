@@ -1,8 +1,13 @@
 // src/app/components/organizer/organizer-dashboard/organizer-dashboard.component.ts
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrganizerService, OrganizerStats, OrganizerEvent } from '../../../services/organizer.service';
+import {
+  OrganizerService,
+  OrganizerStats,
+  OrganizerEvent
+} from '../../../services/organizer.service';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
@@ -13,12 +18,42 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./organizer-dashboard.component.css']
 })
 export class OrganizerDashboardComponent implements OnInit {
+
+  // ===== USER =====
+  user = {
+    firstName: 'Organisateur'
+  };
+
+  // ===== DATA =====
   stats: OrganizerStats | null = null;
   upcomingEvents: OrganizerEvent[] = [];
-  recentRegistrations: any[] = [];
+  recentActivities: any[] = [];
 
+  // ===== UI =====
   loading = true;
   error = '';
+
+  // ===== QUICK ACTIONS ✅ (OBLIGATOIRE POUR LE HTML)
+  quickActions = [
+    {
+      title: 'Créer un événement',
+      route: '/organizer/events/create',
+      icon: '➕',
+      color: '#10B981'
+    },
+    {
+      title: 'Gérer mes événements',
+      route: '/organizer/manage-events',
+      icon: '📋',
+      color: '#3B82F6'
+    },
+    {
+      title: 'Voir les inscriptions',
+      route: '/organizer/registrations',
+      icon: '👥',
+      color: '#F59E0B'
+    }
+  ];
 
   constructor(
     private organizerService: OrganizerService,
@@ -27,8 +62,10 @@ export class OrganizerDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.loadRecentActivities();
   }
 
+  // ===== DASHBOARD =====
   loadDashboardData(): void {
     this.loading = true;
 
@@ -39,36 +76,59 @@ export class OrganizerDashboardComponent implements OnInit {
       return;
     }
 
-    // Charger les statistiques
+    // ===== STATS =====
     this.organizerService.getOrganizerStats(organizerId).subscribe({
       next: (stats) => {
         this.stats = stats;
         this.loading = false;
       },
-      error: (err) => {
-        console.error('Error loading stats:', err);
+      error: () => {
         this.stats = this.organizerService.getMockOrganizerStats();
         this.loading = false;
       }
     });
 
-    // Charger les événements à venir
+    // ===== EVENTS =====
     this.organizerService.getOrganizerEvents(organizerId).subscribe({
       next: (events) => {
         this.upcomingEvents = events
-          .filter(event => new Date(event.date) > new Date())
+          .filter(e => new Date(e.date) > new Date())
           .slice(0, 3);
       },
-      error: (err) => {
-        console.error('Error loading events:', err);
-        this.upcomingEvents = this.organizerService.getMockOrganizerEvents()
-          .filter(event => new Date(event.date) > new Date())
+      error: () => {
+        this.upcomingEvents = this.organizerService
+          .getMockOrganizerEvents()
+          .filter(e => new Date(e.date) > new Date())
           .slice(0, 3);
       }
     });
   }
 
-  // Utilitaires
+  // ===== ACTIVITIES =====
+  loadRecentActivities(): void {
+    this.recentActivities = [
+      {
+        type: 'registration',
+        title: 'Nouvelle inscription',
+        description: 'Un participant s’est inscrit à votre événement',
+        time: 'Il y a 5 min'
+      },
+      {
+        type: 'event',
+        title: 'Événement publié',
+        description: 'Votre événement est maintenant en ligne',
+        time: 'Il y a 1 heure'
+      },
+      {
+        type: 'update',
+        title: 'Événement mis à jour',
+        description: 'Informations modifiées',
+        time: 'Hier'
+      }
+    ];
+  }
+
+  // ===== UTILS =====
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -77,34 +137,12 @@ export class OrganizerDashboardComponent implements OnInit {
     }).format(amount);
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  getAttendancePercentage(event: OrganizerEvent): number {
+    if (!event.maxParticipants || event.maxParticipants === 0) return 0;
+    return Math.round((event.currentParticipants / event.maxParticipants) * 100);
+  }
+  refreshStats(): void {
+    this.loadDashboardData();
   }
 
-  getEventStatus(event: OrganizerEvent): string {
-    const now = new Date();
-    const eventDate = new Date(event.date);
-
-    if (eventDate < now) {
-      return 'Terminé';
-    } else if (event.attendanceRate >= 90) {
-      return 'Presque complet';
-    } else {
-      return 'À venir';
-    }
-  }
-
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'Terminé': return '#6B7280';
-      case 'Presque complet': return '#EF4444';
-      case 'À venir': return '#10B981';
-      default: return '#6B7280';
-    }
-  }
 }

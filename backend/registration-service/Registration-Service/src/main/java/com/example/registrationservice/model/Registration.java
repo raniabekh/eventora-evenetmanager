@@ -17,32 +17,48 @@ public class Registration {
     private Long userId;
 
     @Column(nullable = false)
+    private String participantName;
+
+    @Column(nullable = false)
+    private String participantEmail;
+
+    private String participantPhone;
+    private String notes;
+    private String qrCodeUrl;
+
+    @Column(nullable = false)
     private LocalDateTime registrationDate;
 
     @Column(nullable = false)
-    private String status; // PENDING, CONFIRMED, CANCELLED
+    private String status; // PENDING, CONFIRMED, CANCELLED, WAITING_LIST
 
-    // Constructeurs
     public Registration() {
         this.registrationDate = LocalDateTime.now();
         this.status = "CONFIRMED";
     }
 
-    public Registration(Long eventId, Long userId) {
-        this();
-        this.eventId = eventId;
-        this.userId = userId;
-    }
-
-    // Getters et Setters
+    // getters/setters ...
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
     public Long getEventId() { return eventId; }
     public void setEventId(Long eventId) { this.eventId = eventId; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public LocalDateTime getRegistrationDate() { return registrationDate; }
-    public void setRegistrationDate(LocalDateTime registrationDate) { this.registrationDate = registrationDate; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getParticipantName() { return participantName; }
+    public void setParticipantName(String participantName) { this.participantName = participantName; }
+
+    public String getParticipantEmail() { return participantEmail; }
+    public void setParticipantEmail(String participantEmail) { this.participantEmail = participantEmail; }
+
+    public String getParticipantPhone() { return participantPhone; }
+    public void setParticipantPhone(String participantPhone) { this.participantPhone = participantPhone; }
+
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
+
+    public String getQrCodeUrl() { return qrCodeUrl; }
+    public void setQrCodeUrl(String qrCodeUrl) { this.qrCodeUrl = qrCodeUrl; }
 }

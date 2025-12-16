@@ -1,8 +1,10 @@
 package com.example.eventservice.repository;
+
 import com.example.eventservice.model.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -12,7 +14,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByCategoryAndIsActiveTrue(String category);
     List<Event> findByLocationContainingIgnoreCaseAndIsActiveTrue(String location);
 
-    @Query("SELECT e FROM Event e WHERE e.title LIKE %:keyword% OR e.description LIKE %:keyword% AND e.isActive = true")
+    @Query("""
+        SELECT e FROM Event e
+        WHERE e.isActive = true
+        AND (LOWER(e.title) LIKE LOWER(CONCAT('%',:keyword,'%'))
+             OR LOWER(e.description) LIKE LOWER(CONCAT('%',:keyword,'%')))
+    """)
     List<Event> searchByKeyword(@Param("keyword") String keyword);
 
     List<Event> findByDateBetweenAndIsActiveTrue(LocalDateTime start, LocalDateTime end);

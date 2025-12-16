@@ -2,13 +2,17 @@ export interface Registration {
   id: number;
   eventId: number;
   userId: number;
-  participantName: string;    // ← AJOUTER
-  participantEmail: string;   // ← AJOUTER
-  participantPhone?: string;  // ← AJOUTER
+
+  participantName: string;
+  participantEmail: string;
+  participantPhone?: string;
+
   registrationDate: string;
+
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'WAITING_LIST';
-  notes?: string;            // ← AJOUTER
-  qrCodeUrl?: string;        // ← AJOUTER
+
+  notes?: string;
+  qrCodeUrl?: string;
 }
 
 export interface RegistrationStatus {
@@ -32,3 +36,4 @@ export interface RegistrationRequest {
   notes?: string;
   acceptTerms: boolean;
 }
+

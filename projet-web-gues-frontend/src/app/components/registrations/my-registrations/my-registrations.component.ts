@@ -1,14 +1,13 @@
-// src/app/components/registrations/my-registrations/my-registrations.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import {
-  RegistrationService,
-  Registration
-} from '../../../services/registration.service';
+import { forkJoin } from 'rxjs';
+
+import { RegistrationService, Registration } from '../../../services/registration.service';
 import { EventService } from '../../../services/event.service';
 import { AuthService } from '../../../services/auth.service';
+import { RegistrationView } from '../../../models/registration-view.model';
 
 @Component({
   selector: 'app-my-registrations',
@@ -18,15 +17,13 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./my-registrations.component.css']
 })
 export class MyRegistrationsComponent implements OnInit {
-  registrations: Registration[] = [];
-  filteredRegistrations: Registration[] = [];
 
-  // États
+  registrations: RegistrationView[] = [];
+  filteredRegistrations: RegistrationView[] = [];
+
   loading = true;
   error = '';
-
-  // Filtres
-  statusFilter = 'ALL';
+  statusFilter: 'ALL' | 'CONFIRMED' | 'PENDING' | 'CANCELLED' = 'ALL';
 
   constructor(
     private registrationService: RegistrationService,
@@ -41,39 +38,63 @@ export class MyRegistrationsComponent implements OnInit {
   loadRegistrations(): void {
     this.loading = true;
 
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser?.id) {
+    if (!this.authService.isLoggedIn()) {
       this.error = 'Vous devez être connecté';
       this.loading = false;
       return;
     }
 
-    this.registrationService.getUserRegistrations(currentUser.id).subscribe({
-      next: (regs) => {
-        this.registrations = regs;
-        this.applyFilter();
-        this.loading = false;
+    // ✅ APPEL SANS PARAMÈTRE
+    this.registrationService.getUserRegistrations().subscribe({
+      next: (regs: Registration[]) => {
+
+        if (regs.length === 0) {
+          this.registrations = [];
+          this.applyFilter();
+          this.loading = false;
+          return;
+        }
+
+        const eventCalls = regs.map(reg =>
+          this.eventService.getEventById(reg.eventId)
+        );
+
+        forkJoin(eventCalls).subscribe(events => {
+          this.registrations = regs.map((reg, index) => {
+            const event = events[index];
+
+            return {
+              id: reg.id,
+              eventId: reg.eventId,
+              status: reg.status,
+              registrationDate: reg.registrationDate,
+
+              eventTitle: event?.title ?? 'Événement supprimé',
+              eventCategory: event?.category ?? 'AUTRE',
+              eventDate: event?.date ?? reg.registrationDate,
+              eventLocation: event?.location ?? '—'
+            };
+          });
+
+          this.applyFilter();
+          this.loading = false;
+        });
       },
-      error: (err) => {
-        console.error('Error loading registrations:', err);
+      error: () => {
         this.error = 'Erreur lors du chargement des inscriptions';
         this.loading = false;
       }
     });
   }
 
-  // Appliquer le filtre
   applyFilter(): void {
-    if (this.statusFilter === 'ALL') {
-      this.filteredRegistrations = [...this.registrations];
-    } else {
-      this.filteredRegistrations = this.registrations.filter(
-        r => r.status === this.statusFilter
-      );
-    }
+    this.filteredRegistrations =
+      this.statusFilter === 'ALL'
+        ? [...this.registrations]
+        : this.registrations.filter(r => r.status === this.statusFilter);
   }
 
-  // Compteurs
+  // ===== COUNTERS =====
   get confirmedCount(): number {
     return this.registrations.filter(r => r.status === 'CONFIRMED').length;
   }
@@ -86,59 +107,30 @@ export class MyRegistrationsComponent implements OnInit {
     return this.registrations.filter(r => r.status === 'CANCELLED').length;
   }
 
-  // Annuler une inscription
   cancelRegistration(registrationId: number): void {
-    if (!confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) {
-      return;
-    }
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) return;
 
     this.registrationService.cancelRegistration(registrationId).subscribe({
       next: () => {
-        // Mettre à jour localement
-        const index = this.registrations.findIndex(r => r.id === registrationId);
-        if (index !== -1) {
-          this.registrations[index].status = 'CANCELLED';
-          this.applyFilter();
-        }
-        alert('Inscription annulée avec succès');
+        const reg = this.registrations.find(r => r.id === registrationId);
+        if (reg) reg.status = 'CANCELLED';
+        this.applyFilter();
+        alert('Inscription annulée');
       },
-      error: (err) => {
-        console.error('Error cancelling registration:', err);
-        alert('Erreur lors de l\'annulation');
-      }
+      error: () => alert('Erreur lors de l’annulation')
     });
   }
 
-  // Utilitaires
-  formatShortDate(dateString: string): string {
-    return this.eventService.formatShortDate(dateString);
-  }
+  // ===== UI HELPERS =====
+  formatShortDate = (d: string) => this.eventService.formatShortDate(d);
+  formatTime = (d: string) => this.eventService.formatTime(d);
+  getStatusIcon = (s: string) => this.registrationService.getStatusIcon(s);
+  getStatusColor = (s: string) => this.registrationService.getStatusColor(s);
+  getStatusText = (s: string) => this.registrationService.getStatusText(s);
+  getCategoryIcon = (c: string) => this.eventService.getCategoryIcon(c);
+  getCategoryColor = (c: string) => this.eventService.getCategoryColor(c);
 
-  formatTime(dateString: string): string {
-    return this.eventService.formatTime(dateString);
-  }
-
-  getStatusIcon(status: string): string {
-    return this.registrationService.getStatusIcon(status);
-  }
-
-  getStatusColor(status: string): string {
-    return this.registrationService.getStatusColor(status);
-  }
-
-  getStatusText(status: string): string {
-    return this.registrationService.getStatusText(status);
-  }
-
-  getCategoryIcon(category: string): string {
-    return this.eventService.getCategoryIcon(category);
-  }
-
-  getCategoryColor(category: string): string {
-    return this.eventService.getCategoryColor(category);
-  }
-
-  trackByRegistrationId(index: number, reg: Registration): number {
+  trackByRegistrationId(index: number, reg: RegistrationView): number {
     return reg.id;
   }
 }
